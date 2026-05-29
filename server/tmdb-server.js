@@ -24,8 +24,7 @@ const PORT = process.env.PORT || 3000;
 // ─── TMDB client ────────────────────────────────────────────────────────────
 
 const TMDB_BASE = "https://api.themoviedb.org";
-const TMDB_TOKEN = "eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJmMjQ0M2U1NWQ5ODU1M2FmM2ZhMGVhZDFmMTZhYmI5MCIsIm5iZiI6MTc3NzkyOTQyMy42NTIsInN1YiI6IjY5ZjkwY2NmMzNmMTRjN2MzZGJmODlmMCIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.dvWzHqE5tNZRV_tOsuHMmbB9IvzXAeIm5HSK4E08AKA"
-// process.env.TMDB_TOKEN;
+const TMDB_TOKEN = process.env.TMDB_TOKEN;
 
 if (!TMDB_TOKEN) {
   console.error("Error: TMDB_TOKEN environment variable is not set.");
