@@ -2,12 +2,14 @@
   "name": "filmgame",
   "version": "1.0.0",
   "description": "",
-  "main": "dist/filmgames-server.js",
+  "main": "dist/moviepalace-server.js",
   "scripts": {
     "clean": "rm -rf dist",
     "build": "npm run clean && tsc",
-    "start": "node dist/filmgames-server.js",
-    "dev": "ts-node src/filmgames-server.ts",
+    "cleanWin": "if exist dist rmdir /s /q dist",
+    "buildWin": "npm run cleanWin && tsc",
+    "start": "node dist/moviepalace-server.js",
+    "dev": "ts-node src/moviepalace-server.ts",
     "dev:web": "ts-node src/webServer.ts",
     "typecheck": "tsc --noEmit",
     "test": "echo \"Error: no test specified\" && exit 1"

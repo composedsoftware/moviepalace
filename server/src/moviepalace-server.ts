@@ -27,7 +27,7 @@ import {
   CreditsResponse,
   OverlapResponse,
   ErrorResponse,
-} from "./filmgames-types";
+} from "./moviepalace-types";
 
 dotenv.config();
 
