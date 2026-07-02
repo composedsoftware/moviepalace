@@ -13,6 +13,8 @@ import {
 
 const router = Router();
 
+const TMDB_API_VERSION = 3;
+
 /**
  * GET /v1/movies/search
  * Wraps: GET /3/search/movie
@@ -39,7 +41,7 @@ router.get(
     }
 
     try {
-      const data = await tmdbGet<TmdbMovieSearchResponse>("/3/search/movie", {
+      const data = await tmdbGet<TmdbMovieSearchResponse>(`/${TMDB_API_VERSION}/search/movie`, {
         query,
         year,
         page,
@@ -95,8 +97,8 @@ router.get(
 
     try {
       const [search1, search2] = await Promise.all([
-        tmdbGet<TmdbMovieSearchResponse>("/3/search/movie", { query: movie1, year: year1 }),
-        tmdbGet<TmdbMovieSearchResponse>("/3/search/movie", { query: movie2, year: year2 }),
+        tmdbGet<TmdbMovieSearchResponse>(`/${TMDB_API_VERSION}/search/movie`, { query: movie1, year: year1 }),
+        tmdbGet<TmdbMovieSearchResponse>(`/${TMDB_API_VERSION}/search/movie`, { query: movie2, year: year2 }),
       ]);
 
       if (!search1.results.length) {
@@ -112,8 +114,8 @@ router.get(
       const m2 = search2.results[0];
 
       const [credits1, credits2] = await Promise.all([
-        tmdbGet<TmdbCreditsResponse>(`/3/movie/${m1.id}/credits`),
-        tmdbGet<TmdbCreditsResponse>(`/3/movie/${m2.id}/credits`),
+        tmdbGet<TmdbCreditsResponse>(`/${TMDB_API_VERSION}/movie/${m1.id}/credits`),
+        tmdbGet<TmdbCreditsResponse>(`/${TMDB_API_VERSION}/movie/${m2.id}/credits`),
       ]);
 
       const castMap1 = new Map(credits1.cast.map((a) => [a.id, a]));
@@ -163,7 +165,7 @@ router.get(
     const { language } = req.query;
 
     try {
-      const movie = await tmdbGet<TmdbMovieDetails>(`/3/movie/${movieId}`, { language });
+      const movie = await tmdbGet<TmdbMovieDetails>(`/${TMDB_API_VERSION}/movie/${movieId}`, { language });
 
       res.json({
         id: movie.id,
@@ -207,7 +209,7 @@ router.get(
     const { language } = req.query;
 
     try {
-      const data = await tmdbGet<TmdbCreditsResponse>(`/3/movie/${movieId}/credits`, { language });
+      const data = await tmdbGet<TmdbCreditsResponse>(`/${TMDB_API_VERSION}/movie/${movieId}/credits`, { language });
 
       const cast = data.cast.map((member) => ({
         id: member.id,
