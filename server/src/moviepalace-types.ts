@@ -111,6 +111,32 @@ export interface OverlapResponse {
   overlap: OverlapActor[];
 }
 
+export interface TriviaQuestionResponse {
+  question: string;
+  movie1: MovieDetails;
+  movie2: MovieDetails;
+  answer: string;
+  actors: CastMember[];
+}
+
 export interface ErrorResponse {
   error: string;
+}
+
+// ─── Question API types ───────────────────────────────────────────────────────
+
+export interface CreateQuestionRequest {
+  type: string;
+  difficulty: "easy" | "medium" | "hard";
+  payload: Record<string, unknown>;
+  movieIds?: number[];
+}
+
+export interface QuestionResponse {
+  id: number;
+  type: string;
+  difficulty: string;
+  payload: Record<string, unknown>;
+  createdAt: string;
+  movies: { id: number; title: string }[];
 }
