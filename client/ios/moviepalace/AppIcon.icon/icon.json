@@ -6,8 +6,8 @@
     {
       "layers" : [
         {
-          "image-name" : "moviepalace.png",
-          "name" : "moviepalace",
+          "image-name" : "image.png",
+          "name" : "image",
           "position" : {
             "scale" : 0.82,
             "translation-in-points" : [
