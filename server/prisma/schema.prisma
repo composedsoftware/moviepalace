@@ -1,0 +1,41 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// Cached movie data from TMDB — avoids re-fetching for every question build
+model Movie {
+  id          Int       @id          // TMDB movie ID
+  title       String
+  releaseDate String?
+  posterPath  String?
+  overview    String?
+  fetchedAt   DateTime  @default(now())
+
+  questions   QuestionMovie[]
+}
+
+// A pre-built quiz question, ready to serve to the client
+model Question {
+  id          Int       @id @default(autoincrement())
+  type        String    // e.g. "shared_actor", "movie_detail"
+  difficulty  String    // "easy", "medium", "hard"
+  payload     String    // JSON blob — the full question as the client receives it
+  createdAt   DateTime  @default(now())
+
+  movies      QuestionMovie[]
+}
+
+// Links questions to the movies they were built from
+model QuestionMovie {
+  question    Question  @relation(fields: [questionId], references: [id])
+  questionId  Int
+  movie       Movie     @relation(fields: [movieId], references: [id])
+  movieId     Int
+
+  @@id([questionId, movieId])
+}

@@ -1,0 +1,12 @@
+node_modules
+
+# Environment variables
+.env
+
+# Prisma generated client
+/src/generated/prisma
+
+# SQLite database files
+*.db
+*.db-wal
+*.db-shm
