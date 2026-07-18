@@ -24,7 +24,7 @@ const VALID_DIFFICULTIES = ["easy", "medium", "hard"] as const;
  * Returns: QuestionResponse
  */
 router.post(
-  "/",
+  "/question",
   async (
     req: Request<{}, QuestionResponse | ErrorResponse, CreateQuestionRequest>,
     res: Response

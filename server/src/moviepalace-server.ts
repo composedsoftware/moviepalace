@@ -16,7 +16,7 @@
 import express from "express";
 import dotenv from "dotenv";
 import moviesV1 from "./routes/v1/movies";
-import questionsV1 from "./routes/v1/questions";
+import adminV1 from "./routes/v1/admin";
 
 dotenv.config();
 
@@ -31,7 +31,7 @@ if (!process.env.TMDB_TOKEN) {
 }
 
 app.use("/v1/movies", moviesV1);
-app.use("/v1/questions", questionsV1);
+app.use("/v1/admin", adminV1);
 
 app.listen(PORT, () => {
   console.log(`MoviePalace API running at http://localhost:${PORT}`);
@@ -39,5 +39,5 @@ app.listen(PORT, () => {
   console.log(`  GET /v1/movies/642`);
   console.log(`  GET /v1/movies/642/credits`);
   console.log(`  GET /v1/movies/overlap?movie1=Butch+Cassidy...&movie2=Donnie+Darko`);
-  console.log(`  POST /v1/questions`);
+  console.log(`  POST /v1/admin/question`);
 });
