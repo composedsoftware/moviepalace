@@ -10,3 +10,9 @@ node_modules
 *.db
 *.db-wal
 *.db-shm
+
+/dist
+
+# Early prototyping files
+SundanceAndDarko.py.txt
+movie_overlap.py
