@@ -9,6 +9,7 @@
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
+    "db:populate": "ts-node src/scripts/populate-movies.ts",
     "cleanWin": "if exist dist rmdir /s /q dist",
     "buildWin": "npm run cleanWin && tsc",
     "start": "node dist/moviepalace-server.js",
