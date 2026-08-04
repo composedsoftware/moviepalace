@@ -50,6 +50,16 @@ export interface TmdbCreditsResponse {
   cast: TmdbCastMember[];
 }
 
+export interface TmdbKeyword {
+  id: number;
+  name: string;
+}
+
+export interface TmdbKeywordsResponse {
+  id: number;
+  keywords: TmdbKeyword[];
+}
+
 // ─── Shaped API response shapes (what our server returns to clients) ─────────
 
 export interface MovieSearchResult {

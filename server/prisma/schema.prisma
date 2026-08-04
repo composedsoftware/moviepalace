@@ -14,6 +14,7 @@ model Movie {
   releaseDate String?
   posterPath  String?
   overview    String?
+  keywords    String?   // JSON array of TMDB keyword names, e.g. ["dinosaur","island"]
   fetchedAt   DateTime  @default(now())
 
   questions   QuestionMovie[]
