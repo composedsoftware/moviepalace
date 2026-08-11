@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MoviePalace · Admin</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <p class="eyebrow">MoviePalace</p>
+    <h1>Puzzle Admin</h1>
+  </div>
+  <div class="topbar-actions">
+    <span class="stat" id="stat-line">—</span>
+    <button class="btn" id="theme-toggle" title="Toggle light / dark">◐</button>
+    <button class="btn btn-primary" id="new-btn">New puzzle</button>
+  </div>
+</header>
+
+<div class="layout">
+
+  <aside class="sidebar">
+    <div class="filters">
+      <input type="search" id="filter-type" class="input" placeholder="Filter by type…" autocomplete="off">
+      <div class="segmented" id="filter-difficulty" role="group" aria-label="Difficulty">
+        <button class="seg is-active" data-difficulty="">All</button>
+        <button class="seg" data-difficulty="easy">Easy</button>
+        <button class="seg" data-difficulty="medium">Medium</button>
+        <button class="seg" data-difficulty="hard">Hard</button>
+      </div>
+    </div>
+    <ul class="question-list" id="question-list"></ul>
+  </aside>
+
+  <main class="detail" id="detail"></main>
+
+</div>
+
+<dialog class="editor" id="editor">
+  <form method="dialog" id="editor-form">
+    <header class="editor-head">
+      <h2 id="editor-title">New puzzle</h2>
+      <button class="btn btn-ghost" value="cancel" id="editor-close" type="submit">Close</button>
+    </header>
+
+    <div class="editor-body">
+      <div class="field-row">
+        <label class="field">
+          <span class="label">Type</span>
+          <input class="input" id="f-type" list="type-options" value="cast_links" autocomplete="off">
+          <datalist id="type-options"></datalist>
+        </label>
+        <label class="field">
+          <span class="label">Difficulty</span>
+          <select class="input" id="f-difficulty">
+            <option value="easy">Easy</option>
+            <option value="medium" selected>Medium</option>
+            <option value="hard">Hard</option>
+          </select>
+        </label>
+        <label class="field field-narrow">
+          <span class="label">Puzzle #</span>
+          <input class="input" id="f-puzzle-number" type="number" min="1" step="1">
+        </label>
+      </div>
+
+      <div class="mode-switch">
+        <button type="button" class="seg is-active" data-mode="chain">Chain editor</button>
+        <button type="button" class="seg" data-mode="raw">Raw JSON</button>
+      </div>
+
+      <section id="chain-editor" class="chain-editor">
+        <p class="hint">
+          Seven films in order, joined by the actor who appears in both neighbours.
+          Pick a cached movie to fill in its TMDB ID — linked movies are derived from these IDs.
+        </p>
+        <div id="chain-rows"></div>
+      </section>
+
+      <section id="raw-editor" class="raw-editor" hidden>
+        <p class="hint">The full payload object, exactly as stored.</p>
+        <textarea id="f-raw" class="input mono" rows="18" spellcheck="false"></textarea>
+      </section>
+
+      <datalist id="movie-options"></datalist>
+    </div>
+
+    <footer class="editor-foot">
+      <p class="error" id="editor-error"></p>
+      <div class="grow"></div>
+      <button class="btn" value="cancel" type="submit">Cancel</button>
+      <button class="btn btn-primary" id="save-btn" type="button">Save</button>
+    </footer>
+  </form>
+</dialog>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
