@@ -150,3 +150,61 @@ export interface QuestionResponse {
   createdAt: string;
   movies: { id: number; title: string }[];
 }
+
+export interface UpdateQuestionRequest {
+  type?: string;
+  difficulty?: "easy" | "medium" | "hard";
+  payload?: Record<string, unknown>;
+  movieIds?: number[];
+}
+
+export interface QuestionListResponse {
+  total: number;
+  limit: number;
+  offset: number;
+  questions: QuestionResponse[];
+}
+
+// ─── cast_links payload ──────────────────────────────────────────────────────
+// The shape seed-cast-links.ts writes: seven films in order, joined by six
+// actor links between adjacent positions.
+
+export interface CastLinksChainEntry {
+  pos: number;
+  film: string;
+  tmdb_id: number | null;
+}
+
+export interface CastLinksLink {
+  from_pos: number;
+  to_pos: number;
+  intended_actor: string;
+}
+
+export interface CastLinksPayload {
+  puzzle_number: number;
+  chain: CastLinksChainEntry[];
+  links: CastLinksLink[];
+}
+
+// ─── Admin movie catalogue ───────────────────────────────────────────────────
+
+/** A movie cached in our database — the only IDs a question can be linked to. */
+export interface StoredMovie {
+  id: number;
+  title: string;
+  releaseDate: string | null;
+  posterUrl: string | null;
+  overview: string | null;
+  keywords: string[];
+}
+
+export interface StoredMovieListResponse {
+  total: number;
+  movies: StoredMovie[];
+}
+
+/** A single question with its movies expanded, for the admin detail view. */
+export interface QuestionDetailResponse extends Omit<QuestionResponse, "movies"> {
+  movies: StoredMovie[];
+}
