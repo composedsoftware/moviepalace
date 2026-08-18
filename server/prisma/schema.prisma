@@ -15,9 +15,20 @@ model Movie {
   posterPath  String?
   overview    String?
   keywords    String?   // JSON array of TMDB keyword names, e.g. ["dinosaur","island"]
+  topCast     String?   // JSON array of TMDB person IDs for the top-billed cast, e.g. [6193,287]
   fetchedAt   DateTime  @default(now())
 
   questions   QuestionMovie[]
+}
+
+// Top-billed cast members cached from TMDB /3/movie/{id}/credits
+model Actor {
+  id                  Int      @id          // TMDB person ID
+  name                String
+  profilePath         String?
+  popularity          Float?
+  knownForDepartment  String?
+  fetchedAt           DateTime @default(now())
 }
 
 // A pre-built quiz question, ready to serve to the client

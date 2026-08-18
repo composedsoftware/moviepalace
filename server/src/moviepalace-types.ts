@@ -43,6 +43,8 @@ export interface TmdbCastMember {
   character: string;
   order: number;
   profile_path: string | null;
+  popularity?: number;
+  known_for_department?: string;
 }
 
 export interface TmdbCreditsResponse {
@@ -131,6 +133,16 @@ export interface TriviaQuestionResponse {
 
 export interface ErrorResponse {
   error: string;
+}
+
+// ─── Actor types ──────────────────────────────────────────────────────────────
+
+export interface ActorResponse {
+  id: number;
+  name: string;
+  profilePath: string | null;
+  popularity: number | null;
+  knownForDepartment: string | null;
 }
 
 // ─── Question API types ───────────────────────────────────────────────────────

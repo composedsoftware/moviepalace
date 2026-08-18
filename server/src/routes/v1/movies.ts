@@ -1,5 +1,6 @@
 import { Router, Request, Response } from "express";
 import { tmdbGet, imageUrl, handleError } from "../../lib/tmdb";
+import prisma from "../../lib/db";
 import {
   TmdbMovieSearchResponse,
   TmdbMovieDetails,
@@ -10,6 +11,7 @@ import {
   OverlapResponse,
   ErrorResponse,
   TriviaQuestionResponse,
+  QuestionResponse,
 } from "../../moviepalace-types";
 
 const router = Router();
@@ -145,6 +147,54 @@ router.get(
 );
 
 /**
+ * GET /v1/movies/question/:questionId
+ *
+ * Retrieves a stored question by its database ID.
+ *
+ * Path params:
+ *   questionId (required) - Question.id (integer)
+ *
+ * Returns: QuestionResponse
+ */
+router.get(
+  "/question/:questionId",
+  async (
+    req: Request<{ questionId: string }, QuestionResponse | ErrorResponse>,
+    res: Response
+  ) => {
+    const questionId = Number.parseInt(req.params.questionId, 10);
+
+    if (Number.isNaN(questionId)) {
+      res.status(400).json({ error: '"questionId" must be an integer' } satisfies ErrorResponse);
+      return;
+    }
+
+    const question = await prisma.question.findUnique({
+      where: { id: questionId },
+      include: {
+        movies: {
+          include: { movie: { select: { id: true, title: true } } },
+        },
+      },
+    });
+
+    if (!question) {
+      res.status(404).json({ error: `No question with ID ${questionId}` } satisfies ErrorResponse);
+      return;
+    }
+
+    res.json({
+      id: question.id,
+      type: question.type,
+      difficulty: question.difficulty,
+      payload: JSON.parse(question.payload) as Record<string, unknown>,
+      createdAt: question.createdAt.toISOString(),
+      movies: question.movies.map((qm) => qm.movie),
+    } satisfies QuestionResponse);
+  }
+);
+
+/**
  * GET /v1/movies/:movieId
  * Wraps: GET /3/movie/{movie_id}
  *
@@ -226,69 +276,5 @@ router.get(
     }
   }
 );
-
-router.get(
-  "/trivia/:questionId", 
-  async (
-    req: Request<{ questionId: string }, TriviaQuestionResponse | ErrorResponse, {}, {}>, 
-    res: Response
-  ) => {
-    const { questionId } = req.params;
-      
-    try {
-      res.json({
-        question: "Which actor appeared in both movies?",
-        movie1: {
-          id: 123,
-          title: "Movie One",
-          overview: "Overview of Movie One",
-          release_date: "2020-01-01",
-          runtime: 120,
-          budget: 10000000,
-          revenue: 50000000,
-          popularity: 7.5,
-          genres: [{ id: 1, name: "Action" }],
-          poster_path: null,
-          backdrop_path: null,
-          imdb_id: "tt1234567",
-        },
-        movie2: {
-          id: 456,
-          title: "Movie Two",
-          overview: "Overview of Movie Two",
-          release_date: "2021-01-01",
-          runtime: 110,
-          budget: 15000000,
-          revenue: 60000000,
-          popularity: 8.0,
-          genres: [{ id: 2, name: "Comedy" }],
-          poster_path: null,
-          backdrop_path: null,
-          imdb_id: "tt7654321",
-        },
-        answer: "John Doe",
-        actors: [
-          {
-            id: 1,
-            name: "John Doe",
-            character: "Character in Movie One",
-            order: 0,
-            profile_path: null,
-          },
-          {
-            id: 2,
-            name: "Jane Smith",
-            character: "Character in Movie Two",
-            order: 1,
-            profile_path: null,
-          },
-        ],  
-      } satisfies TriviaQuestionResponse);
-    } catch (err) {
-      handleError(res, err);
-    }
-  }
-);
-
 
 export default router;
