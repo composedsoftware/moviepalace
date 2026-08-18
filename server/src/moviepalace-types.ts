@@ -150,3 +150,36 @@ export interface QuestionResponse {
   createdAt: string;
   movies: { id: number; title: string }[];
 }
+
+// ─── Question payload types ───────────────────────────────────────────────────────
+
+export interface SharedActorPayload {
+  question: string;
+  choices: string[];
+  correct_index: number;
+}  
+
+export interface MovieDetailsPayload {
+  question: string;
+  choices: string[];
+  correct_index: number;
+}
+
+export interface CastLinksChainEntry {
+  pos: number;
+  film: string;
+  tmdb_id: number;
+}
+
+export interface CastLinksLinksEntry {
+  from_pos: number;
+  to_pos: number;
+  intended_actor: string;
+}
+
+export interface CastLinksPayload {
+  puzzle_number: number;
+  chain: CastLinksChainEntry[];
+  links: CastLinksLinksEntry[];
+  type: "shared_actor" | "movie_detail" | "cast_links";
+}
