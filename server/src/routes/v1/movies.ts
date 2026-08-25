@@ -11,7 +11,9 @@ import {
   OverlapResponse,
   ErrorResponse,
   TriviaQuestionResponse,
-  QuestionResponse,
+  ActorResponse,
+  MovieWithCast,
+  QuestionWithMoviesResponse,
 } from "../../moviepalace-types";
 
 const router = Router();
@@ -149,17 +151,17 @@ router.get(
 /**
  * GET /v1/movies/question/:questionId
  *
- * Retrieves a stored question by its database ID.
+ * Retrieves a stored question with full movie and cast data for every linked film.
  *
  * Path params:
  *   questionId (required) - Question.id (integer)
  *
- * Returns: QuestionResponse
+ * Returns: QuestionWithMoviesResponse
  */
 router.get(
   "/question/:questionId",
   async (
-    req: Request<{ questionId: string }, QuestionResponse | ErrorResponse>,
+    req: Request<{ questionId: string }, QuestionWithMoviesResponse | ErrorResponse>,
     res: Response
   ) => {
     const questionId = Number.parseInt(req.params.questionId, 10);
@@ -173,7 +175,19 @@ router.get(
       where: { id: questionId },
       include: {
         movies: {
-          include: { movie: { select: { id: true, title: true } } },
+          include: {
+            movie: {
+              select: {
+                id: true,
+                title: true,
+                releaseDate: true,
+                posterPath: true,
+                overview: true,
+                keywords: true,
+                topCast: true,
+              },
+            },
+          },
         },
       },
     });
@@ -183,14 +197,60 @@ router.get(
       return;
     }
 
+    // Parse topCast JSON arrays from every linked movie, collect unique actor IDs
+    const parseIds = (raw: string | null): number[] => {
+      try {
+        const parsed = JSON.parse(raw ?? "[]") as unknown;
+        return Array.isArray(parsed) ? parsed.filter((x): x is number => typeof x === "number") : [];
+      } catch { return []; }
+    };
+
+    const allActorIds = [...new Set(question.movies.flatMap((qm) => parseIds(qm.movie.topCast)))];
+
+    // Fetch all needed actors in one query, build a lookup map
+    const actorRows = await prisma.actor.findMany({ where: { id: { in: allActorIds } } });
+    const actorMap = new Map(actorRows.map((a) => [a.id, a]));
+
+    const movies: MovieWithCast[] = question.movies.map((qm) => {
+      const m = qm.movie;
+
+      const topCast: ActorResponse[] = parseIds(m.topCast)
+        .map((id) => actorMap.get(id))
+        .filter((a): a is NonNullable<typeof a> => a !== undefined)
+        .map((a) => ({
+          id: a.id,
+          name: a.name,
+          profilePath: a.profilePath,
+          popularity: a.popularity,
+          knownForDepartment: a.knownForDepartment,
+        }));
+
+      const keywordList: string[] = (() => {
+        try {
+          const parsed = JSON.parse(m.keywords ?? "[]") as unknown;
+          return Array.isArray(parsed) ? parsed.filter((k): k is string => typeof k === "string") : [];
+        } catch { return []; }
+      })();
+
+      return {
+        id: m.id,
+        title: m.title,
+        releaseDate: m.releaseDate,
+        posterUrl: imageUrl(m.posterPath, "w342"),
+        overview: m.overview,
+        keywords: keywordList,
+        topCast,
+      };
+    });
+
     res.json({
       id: question.id,
       type: question.type,
       difficulty: question.difficulty,
       payload: JSON.parse(question.payload) as Record<string, unknown>,
       createdAt: question.createdAt.toISOString(),
-      movies: question.movies.map((qm) => qm.movie),
-    } satisfies QuestionResponse);
+      movies,
+    } satisfies QuestionWithMoviesResponse);
   }
 );
 

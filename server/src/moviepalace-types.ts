@@ -145,6 +145,25 @@ export interface ActorResponse {
   knownForDepartment: string | null;
 }
 
+export interface MovieWithCast {
+  id: number;
+  title: string;
+  releaseDate: string | null;
+  posterUrl: string | null;
+  overview: string | null;
+  keywords: string[];
+  topCast: ActorResponse[];
+}
+
+export interface QuestionWithMoviesResponse {
+  id: number;
+  type: string;
+  difficulty: string;
+  payload: Record<string, unknown>;
+  createdAt: string;
+  movies: MovieWithCast[];
+}
+
 // ─── Question API types ───────────────────────────────────────────────────────
 
 export interface CreateQuestionRequest {
