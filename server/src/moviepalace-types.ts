@@ -202,10 +202,15 @@ export interface CastLinksChainEntry {
   tmdb_id: number;
 }
 
+export interface CastLinksPossibleActor {
+  id: number;
+  name: string;
+}
+
 export interface CastLinksLinksEntry {
   from_pos: number;
   to_pos: number;
-  intended_actor: string;
+  possible_actors: CastLinksPossibleActor[];
 }
 
 export interface CastLinksPayload {
