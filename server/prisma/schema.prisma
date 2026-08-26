@@ -21,6 +21,13 @@ model Movie {
   questions   QuestionMovie[]
 }
 
+// All distinct TMDB keywords found across the Movie catalog, with occurrence counts
+model Keyword {
+  id         Int    @id          // TMDB keyword ID
+  name       String @unique
+  movieCount Int    // number of movies in our catalog that carry this keyword
+}
+
 // Top-billed cast members cached from TMDB /3/movie/{id}/credits
 model Actor {
   id                  Int      @id          // TMDB person ID

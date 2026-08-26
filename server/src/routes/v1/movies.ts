@@ -152,7 +152,13 @@ router.get(
       const keywordList: string[] = (() => {
         try {
           const parsed = JSON.parse(m.keywords ?? "[]") as unknown;
-          return Array.isArray(parsed) ? parsed.filter((k): k is string => typeof k === "string") : [];
+          if (!Array.isArray(parsed)) return [];
+          return parsed.flatMap((k) => {
+            if (typeof k === "string") return [k];
+            if (k && typeof k === "object" && "name" in k && typeof (k as { name: unknown }).name === "string")
+              return [(k as { name: string }).name];
+            return [];
+          });
         } catch { return []; }
       })();
 

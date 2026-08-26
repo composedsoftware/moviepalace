@@ -2,7 +2,7 @@
  * sync-keywords.ts
  *
  * Fetches keyword data from TMDB for every Movie in the database and stores
- * the keyword names as a JSON array in Movie.keywords.
+ * them as a JSON array of {id, name} objects in Movie.keywords.
  *
  * Safe to re-run — movies that already have keywords are skipped unless
  * --force is passed as a CLI argument.
@@ -41,14 +41,14 @@ async function main() {
         `/3/movie/${movie.id}/keywords`
       );
 
-      const keywordNames = response.keywords.map((k) => k.name);
+      const keywords = response.keywords.map((k) => ({ id: k.id, name: k.name }));
 
       await prisma.movie.update({
         where: { id: movie.id },
-        data: { keywords: JSON.stringify(keywordNames) },
+        data: { keywords: JSON.stringify(keywords) },
       });
 
-      console.log(`  ✓ "${movie.title}" — ${keywordNames.length} keyword(s): ${keywordNames.slice(0, 5).join(", ")}${keywordNames.length > 5 ? "…" : ""}`);
+      console.log(`  ✓ "${movie.title}" — ${keywords.length} keyword(s): ${keywords.slice(0, 5).map((k) => k.name).join(", ")}${keywords.length > 5 ? "…" : ""}`);
       updated++;
     } catch (err) {
       console.error(`  ✗ "${movie.title}" (${movie.id}): ${err instanceof Error ? err.message : err}`);
