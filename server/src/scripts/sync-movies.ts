@@ -6,7 +6,6 @@
  *
  * Supports all question types:
  *   cast_links   — TMDB IDs are embedded in the payload chain array
- *   shared_actor — movie titles extracted from question text via regex
  *   movie_detail — movie title extracted from question text via regex
  *
  * Run: npm run db:sync-movies
@@ -44,36 +43,6 @@ function refsFromCastLinks(payload: string): MovieRef[] {
     .map((c) => ({ title: c.film, tmdb_id: c.tmdb_id! }));
 }
 
-function refsFromSharedActor(payload: string): MovieRef[] {
-  const { question } = JSON.parse(payload) as TextQuestionPayload;
-
-  // "in both Title (YEAR) and Title (YEAR)"
-  const withYears = question.match(
-    /in both (.+?)\s*\((\d{4})\)\s*and\s*(.+?)\s*\((\d{4})\)/i
-  );
-  if (withYears) {
-    return [
-      { title: withYears[1].trim(), year: withYears[2] },
-      { title: withYears[3].trim(), year: withYears[4] },
-    ];
-  }
-
-  // "in both X and Y?" — split on the last " and "
-  const withoutYears = question.match(/in both (.+?)\?/i);
-  if (withoutYears) {
-    const combined = withoutYears[1];
-    const lastAnd = combined.lastIndexOf(" and ");
-    if (lastAnd !== -1) {
-      return [
-        { title: combined.substring(0, lastAnd).trim() },
-        { title: combined.substring(lastAnd + 5).trim() },
-      ];
-    }
-  }
-
-  return [];
-}
-
 function refsFromMovieDetail(payload: string): MovieRef[] {
   const { question } = JSON.parse(payload) as TextQuestionPayload;
   const m = question.match(/was (.+?) released/i);
@@ -82,7 +51,6 @@ function refsFromMovieDetail(payload: string): MovieRef[] {
 
 function extractRefs(type: string, payload: string): MovieRef[] {
   if (type === "cast_links")   return refsFromCastLinks(payload);
-  if (type === "shared_actor") return refsFromSharedActor(payload);
   if (type === "movie_detail") return refsFromMovieDetail(payload);
   return [];
 }

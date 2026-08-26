@@ -28,32 +28,6 @@ interface MovieRef {
 function extractMovieTitles(type: string, payload: string): MovieRef[] {
   const { question } = JSON.parse(payload) as { question: string };
 
-  if (type === "shared_actor") {
-    // Pattern 1: "in both Title (YEAR) and Title (YEAR)"
-    const withYears = question.match(
-      /in both (.+?)\s*\((\d{4})\)\s*and\s*(.+?)\s*\((\d{4})\)/i
-    );
-    if (withYears) {
-      return [
-        { title: withYears[1].trim(), year: withYears[2] },
-        { title: withYears[3].trim(), year: withYears[4] },
-      ];
-    }
-
-    // Pattern 2: "in both X and Y?" — split on the last " and "
-    const withoutYears = question.match(/in both (.+?)\?/i);
-    if (withoutYears) {
-      const combined = withoutYears[1];
-      const lastAnd = combined.lastIndexOf(" and ");
-      if (lastAnd !== -1) {
-        return [
-          { title: combined.substring(0, lastAnd).trim() },
-          { title: combined.substring(lastAnd + 5).trim() },
-        ];
-      }
-    }
-  }
-
   if (type === "movie_detail") {
     // Pattern: "was Title released"
     const released = question.match(/was (.+?) released/i);

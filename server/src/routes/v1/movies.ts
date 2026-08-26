@@ -8,9 +8,7 @@ import {
   MovieSearchResponse,
   MovieDetails,
   CreditsResponse,
-  OverlapResponse,
   ErrorResponse,
-  TriviaQuestionResponse,
   ActorResponse,
   MovieWithCast,
   QuestionWithMoviesResponse,
@@ -68,80 +66,6 @@ router.get(
         total_pages: data.total_pages,
         results,
       } satisfies MovieSearchResponse);
-    } catch (err) {
-      handleError(res, err);
-    }
-  }
-);
-
-/**
- * GET /v1/movies/overlap
- * Finds actors appearing in both of two movies.
- * Internally calls /3/search/movie (twice) and /3/movie/{id}/credits (twice).
- *
- * Query params:
- *   movie1 (required) - title of the first movie
- *   movie2 (required) - title of the second movie
- *   year1  (optional) - release year of first movie (helps disambiguation)
- *   year2  (optional) - release year of second movie
- *
- * Returns: OverlapResponse
- */
-router.get(
-  "/overlap",
-  async (
-    req: Request<{}, OverlapResponse | ErrorResponse, {}, { movie1?: string; movie2?: string; year1?: string; year2?: string }>,
-    res: Response
-  ) => {
-    const { movie1, movie2, year1, year2 } = req.query;
-
-    if (!movie1 || !movie2) {
-      res.status(400).json({ error: '"movie1" and "movie2" parameters are required' } satisfies ErrorResponse);
-      return;
-    }
-
-    try {
-      const [search1, search2] = await Promise.all([
-        tmdbGet<TmdbMovieSearchResponse>(`/${TMDB_API_VERSION}/search/movie`, { query: movie1, year: year1 }),
-        tmdbGet<TmdbMovieSearchResponse>(`/${TMDB_API_VERSION}/search/movie`, { query: movie2, year: year2 }),
-      ]);
-
-      if (!search1.results.length) {
-        res.status(404).json({ error: `No movie found for "${movie1}"` } satisfies ErrorResponse);
-        return;
-      }
-      if (!search2.results.length) {
-        res.status(404).json({ error: `No movie found for "${movie2}"` } satisfies ErrorResponse);
-        return;
-      }
-
-      const m1 = search1.results[0];
-      const m2 = search2.results[0];
-
-      const [credits1, credits2] = await Promise.all([
-        tmdbGet<TmdbCreditsResponse>(`/${TMDB_API_VERSION}/movie/${m1.id}/credits`),
-        tmdbGet<TmdbCreditsResponse>(`/${TMDB_API_VERSION}/movie/${m2.id}/credits`),
-      ]);
-
-      const castMap1 = new Map(credits1.cast.map((a) => [a.id, a]));
-      const castMap2 = new Map(credits2.cast.map((a) => [a.id, a]));
-
-      const overlap = Array.from(castMap1.entries())
-        .filter(([actorId]) => castMap2.has(actorId))
-        .map(([actorId, actor]) => ({
-          id: actorId,
-          name: actor.name,
-          character_in_movie1: actor.character,
-          character_in_movie2: castMap2.get(actorId)!.character,
-          profile_path: actor.profile_path,
-        }));
-
-      res.json({
-        movie1: { id: m1.id, title: m1.title, release_date: m1.release_date },
-        movie2: { id: m2.id, title: m2.title, release_date: m2.release_date },
-        overlap_count: overlap.length,
-        overlap,
-      } satisfies OverlapResponse);
     } catch (err) {
       handleError(res, err);
     }

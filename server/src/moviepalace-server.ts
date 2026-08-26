@@ -4,10 +4,16 @@
  * Express entry point for the MoviePalace API.
  *
  * Routes:
- *   /v1/movies/search
- *   /v1/movies/overlap
- *   /v1/movies/:movieId
- *   /v1/movies/:movieId/credits
+ *   GET  /v1/movies/search?query=&year=
+ *   GET  /v1/movies/question/:questionId
+ *   GET  /v1/movies/:movieId
+ *   GET  /v1/movies/:movieId/credits
+ *
+ *   GET  /v1/admin/questions?type=&difficulty=&limit=&offset=
+ *   GET  /v1/admin/questions/:questionId
+ *   PUT  /v1/admin/questions/:questionId
+ *   POST /v1/admin/question
+ *   GET  /v1/admin/movies?query=&limit=
  *
  * Run (dev):  npm run dev
  * Run (prod): npm run build && npm start
@@ -35,9 +41,17 @@ app.use("/v1/admin", adminV1);
 
 app.listen(PORT, () => {
   console.log(`MoviePalace API running at http://localhost:${PORT}`);
-  console.log(`  GET /v1/movies/search?query=Inception`);
-  console.log(`  GET /v1/movies/642`);
-  console.log(`  GET /v1/movies/642/credits`);
-  console.log(`  GET /v1/movies/overlap?movie1=Butch+Cassidy...&movie2=Donnie+Darko`);
-  console.log(`  POST /v1/admin/question`);
+  console.log(``);
+  console.log(`  Movies`);
+  console.log(`    GET  /v1/movies/search?query=Inception`);
+  console.log(`    GET  /v1/movies/question/14`);
+  console.log(`    GET  /v1/movies/27205`);
+  console.log(`    GET  /v1/movies/27205/credits`);
+  console.log(``);
+  console.log(`  Admin`);
+  console.log(`    GET  /v1/admin/questions?type=cast_links&difficulty=easy`);
+  console.log(`    GET  /v1/admin/questions/14`);
+  console.log(`    PUT  /v1/admin/questions/14`);
+  console.log(`    POST /v1/admin/question`);
+  console.log(`    GET  /v1/admin/movies?query=Jurassic`);
 });

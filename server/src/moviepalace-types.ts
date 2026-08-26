@@ -108,29 +108,6 @@ export interface CreditsResponse {
   cast: CastMember[];
 }
 
-export interface OverlapActor {
-  id: number;
-  name: string;
-  character_in_movie1: string;
-  character_in_movie2: string;
-  profile_path: string | null;
-}
-
-export interface OverlapResponse {
-  movie1: { id: number; title: string; release_date: string };
-  movie2: { id: number; title: string; release_date: string };
-  overlap_count: number;
-  overlap: OverlapActor[];
-}
-
-export interface TriviaQuestionResponse {
-  question: string;
-  movie1: MovieDetails;
-  movie2: MovieDetails;
-  answer: string;
-  actors: CastMember[];
-}
-
 export interface ErrorResponse {
   error: string;
 }
@@ -184,12 +161,6 @@ export interface QuestionResponse {
 
 // ─── Question payload types ───────────────────────────────────────────────────────
 
-export interface SharedActorPayload {
-  question: string;
-  choices: string[];
-  correct_index: number;
-}  
-
 export interface MovieDetailsPayload {
   question: string;
   choices: string[];
@@ -217,5 +188,5 @@ export interface CastLinksPayload {
   puzzle_number: number;
   chain: CastLinksChainEntry[];
   links: CastLinksLinksEntry[];
-  type: "shared_actor" | "movie_detail" | "cast_links";
+  type: "movie_detail" | "cast_links";
 }
