@@ -46,11 +46,6 @@ export async function tmdbGet<T>(
   return response.json() as Promise<T>;
 }
 
-/** Resolve a TMDB image path to a full URL, or return null. */
-export function imageUrl(path: string | null, size: string): string | null {
-  return path ? `https://image.tmdb.org/t/p/${size}${path}` : null;
-}
-
 /** Send a typed error response, using the status code from TmdbApiError when available. */
 export function handleError(res: Response, err: unknown): void {
   if (err instanceof TmdbApiError) {

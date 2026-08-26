@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import { tmdbGet, imageUrl, handleError } from "../../lib/tmdb";
+import { tmdbGet, handleError } from "../../lib/tmdb";
 import prisma from "../../lib/db";
 import {
   TmdbMovieSearchResponse,
@@ -59,7 +59,7 @@ router.get(
         release_date: m.release_date,
         overview: m.overview,
         popularity: m.popularity,
-        poster_path: imageUrl(m.poster_path, "w500"),
+        poster_path: m.poster_path,
       }));
 
       res.json({
@@ -133,7 +133,7 @@ router.get(
           name: actor.name,
           character_in_movie1: actor.character,
           character_in_movie2: castMap2.get(actorId)!.character,
-          profile_path: imageUrl(actor.profile_path, "w185"),
+          profile_path: actor.profile_path,
         }));
 
       res.json({
@@ -236,7 +236,7 @@ router.get(
         id: m.id,
         title: m.title,
         releaseDate: m.releaseDate,
-        posterUrl: imageUrl(m.posterPath, "w342"),
+        posterUrl: m.posterPath,
         overview: m.overview,
         keywords: keywordList,
         topCast,
@@ -288,8 +288,8 @@ router.get(
         revenue: movie.revenue,
         popularity: movie.popularity,
         genres: movie.genres,
-        poster_path: imageUrl(movie.poster_path, "w500"),
-        backdrop_path: imageUrl(movie.backdrop_path, "original"),
+        poster_path: movie.poster_path,
+        backdrop_path: movie.backdrop_path,
         imdb_id: movie.imdb_id,
       } satisfies MovieDetails);
     } catch (err) {
@@ -327,7 +327,7 @@ router.get(
         name: member.name,
         character: member.character,
         order: member.order,
-        profile_path: imageUrl(member.profile_path, "w185"),
+        profile_path: member.profile_path,
       }));
 
       res.json({ movie_id: data.id, cast } satisfies CreditsResponse);
