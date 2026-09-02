@@ -185,6 +185,47 @@ router.get(
 );
 
 /**
+ * GET /v1/movies/suggest?q=
+ *
+ * Searches the local Movie table for titles containing the query string.
+ * Intended for the autocomplete dropdown on the blurred-poster page.
+ *
+ * Query params:
+ *   q (required) - search string, min 2 characters
+ *
+ * Returns: { results: [{ id, title, year }] }
+ */
+router.get(
+  "/suggest",
+  async (
+    req: Request<{}, unknown, {}, { q?: string }>,
+    res: Response
+  ) => {
+    const q = String(req.query.q ?? "").trim();
+
+    if (q.length < 2) {
+      res.json({ results: [] });
+      return;
+    }
+
+    const movies = await prisma.movie.findMany({
+      where: { title: { contains: q } },
+      select: { id: true, title: true, releaseDate: true },
+      take: 8,
+      orderBy: { title: "asc" },
+    });
+
+    res.json({
+      results: movies.map((m) => ({
+        id: m.id,
+        title: m.title,
+        year: m.releaseDate?.slice(0, 4) ?? null,
+      })),
+    });
+  }
+);
+
+/**
  * GET /v1/movies/random
  *
  * Returns a random movie from the local database that has a poster image.

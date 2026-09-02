@@ -51,6 +51,7 @@ app.listen(PORT, () => {
   console.log(``);
   console.log(`  Movies`);
   console.log(`    GET  /v1/movies/search?query=Inception`);
+  console.log(`    GET  /v1/movies/suggest?q=Inc`);
   console.log(`    GET  /v1/movies/random`);
   console.log(`    GET  /v1/movies/question/14`);
   console.log(`    GET  /v1/movies/27205`);

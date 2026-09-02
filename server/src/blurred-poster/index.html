@@ -25,12 +25,9 @@
       --frame-w:          min(320px, 70vw);
       --frame-h:          calc(var(--frame-w) * 1.5);
       --panel-w:          min(520px, 88vw);
-      --blur-max:         28;
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    html { scroll-behavior: smooth; }
 
     body {
       min-height: 100dvh;
@@ -42,10 +39,8 @@
       flex-direction: column;
       align-items: center;
       padding: 3.5rem 1.5rem 3.5rem;
-      gap: 0;
     }
 
-    /* ─── Wordmark ─── */
     .wordmark {
       position: fixed;
       top: 1.25rem;
@@ -76,13 +71,13 @@
       object-fit: cover;
       transform: scale(1.08);
       transition:
-        filter 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+        filter   0.6s cubic-bezier(0.4, 0, 0.2, 1),
         transform 0.6s cubic-bezier(0.4, 0, 0.2, 1),
-        opacity 0.25s ease;
+        opacity  0.25s ease;
     }
 
-    .poster-img.loading  { opacity: 0; }
-    .poster-img.no-blur  { transform: scale(1); }
+    .poster-img.loading { opacity: 0; }
+    .poster-img.no-blur { transform: scale(1); }
 
     .poster-placeholder {
       position: absolute;
@@ -109,10 +104,7 @@
       transition: opacity 0.45s ease 0.15s, transform 0.45s ease 0.15s;
     }
 
-    .film-info.revealed {
-      opacity: 1;
-      transform: translateY(0);
-    }
+    .film-info.revealed { opacity: 1; transform: translateY(0); }
 
     .film-title {
       font-family: "Cormorant Garamond", Georgia, serif;
@@ -152,28 +144,13 @@
       transition: color 0.15s, border-color 0.15s, background 0.15s;
     }
 
-    .btn:hover, .btn:focus-visible {
-      color: var(--text);
-      border-color: var(--text);
-      outline: none;
-    }
-
-    .btn:focus-visible {
-      box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px var(--text);
-    }
-
+    .btn:hover, .btn:focus-visible { color: var(--text); border-color: var(--text); outline: none; }
+    .btn:focus-visible { box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px var(--text); }
     .btn:disabled { opacity: 0.35; cursor: default; }
 
-    .btn-primary {
-      background: var(--accent);
-      border-color: var(--accent);
-      color: var(--text);
-    }
-
+    .btn-primary { background: var(--accent); border-color: var(--accent); color: var(--text); }
     .btn-primary:hover, .btn-primary:focus-visible {
-      background: var(--accent-dim);
-      border-color: var(--accent-dim);
-      color: var(--text);
+      background: var(--accent-dim); border-color: var(--accent-dim); color: var(--text);
     }
 
     /* ─── Progress bar ─── */
@@ -222,17 +199,18 @@
       font-variant-numeric: tabular-nums;
     }
 
-    .stats .stat-value {
-      color: var(--text);
-    }
+    .stats .n { color: var(--text); }
 
+    /* ─── Guess input row + dropdown ─── */
     .guess-row {
+      position: relative;  /* anchor for the dropdown */
       display: flex;
       gap: 0.5rem;
     }
 
     .guess-input {
       flex: 1;
+      min-width: 0;
       font-family: "DM Mono", monospace;
       font-size: 0.72rem;
       letter-spacing: 0.03em;
@@ -245,15 +223,8 @@
     }
 
     .guess-input::placeholder { color: var(--muted); }
-
-    .guess-input:focus {
-      border-color: var(--muted);
-    }
-
-    .guess-input:disabled {
-      opacity: 0.4;
-      cursor: default;
-    }
+    .guess-input:focus { border-color: var(--muted); }
+    .guess-input:disabled { opacity: 0.4; cursor: default; }
 
     .btn-guess {
       flex-shrink: 0;
@@ -270,42 +241,73 @@
       transition: color 0.15s, border-color 0.15s;
     }
 
-    .btn-guess:hover, .btn-guess:focus-visible {
-      color: var(--text);
-      border-color: var(--text);
-      outline: none;
-    }
-
-    .btn-guess:focus-visible {
-      box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px var(--text);
-    }
-
+    .btn-guess:hover, .btn-guess:focus-visible { color: var(--text); border-color: var(--text); outline: none; }
+    .btn-guess:focus-visible { box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px var(--text); }
     .btn-guess:disabled { opacity: 0.35; cursor: default; }
+
+    /* ─── Autocomplete dropdown ─── */
+    .suggest-drop {
+      position: absolute;
+      /* align left edge with the input, right edge with the button */
+      top: calc(100% - 1px);  /* overlap border so top of drop merges */
+      left: 0;
+      right: 0;
+      z-index: 20;
+      background: var(--surface);
+      border: 1px solid var(--muted);
+      border-top: none;
+      overflow-y: auto;
+      max-height: 260px;
+    }
+
+    .suggest-drop[hidden] { display: none; }
+
+    .suggest-item {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 1rem;
+      width: 100%;
+      padding: 0.6rem 0.85rem;
+      font-family: "DM Mono", monospace;
+      font-size: 0.68rem;
+      letter-spacing: 0.02em;
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid var(--border);
+      color: var(--muted);
+      cursor: pointer;
+      text-align: left;
+      transition: background 0.1s, color 0.1s;
+    }
+
+    .suggest-item:last-child { border-bottom: none; }
+
+    .suggest-item:hover,
+    .suggest-item[aria-selected="true"] {
+      background: var(--border);
+      color: var(--text);
+    }
+
+    .suggest-item[aria-selected="true"] .suggest-year { color: var(--muted); }
+
+    .suggest-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .suggest-year  { flex-shrink: 0; font-size: 0.6rem; color: var(--border); }
 
     /* ─── Feedback ─── */
     .feedback {
       font-size: 0.62rem;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      min-height: 1.2rem;
-      padding: 0.55rem 0.75rem;
+      min-height: 1.1rem;
+      padding: 0.5rem 0.75rem;
       opacity: 0;
-      transition: opacity 0.2s ease, background 0.2s ease;
+      transition: opacity 0.2s ease;
     }
 
     .feedback.visible { opacity: 1; }
-
-    .feedback.wrong {
-      background: var(--wrong-bg);
-      border-left: 2px solid var(--accent);
-      color: var(--accent);
-    }
-
-    .feedback.success {
-      background: var(--success-bg);
-      border-left: 2px solid var(--success);
-      color: var(--success);
-    }
+    .feedback.wrong   { background: var(--wrong-bg);   border-left: 2px solid var(--accent);  color: var(--accent); }
+    .feedback.success { background: var(--success-bg); border-left: 2px solid var(--success); color: var(--success); }
 
     /* ─── Keywords ─── */
     .keywords-section {
@@ -316,7 +318,7 @@
       gap: 0.9rem;
     }
 
-    .keywords-label {
+    .section-label {
       font-size: 0.55rem;
       letter-spacing: 0.2em;
       text-transform: uppercase;
@@ -343,21 +345,9 @@
       transition: color 0.15s, border-color 0.15s, background 0.15s;
     }
 
-    .kw-btn:hover, .kw-btn:focus-visible {
-      color: var(--text);
-      border-color: var(--muted);
-      outline: none;
-    }
-
-    .kw-btn:focus-visible {
-      box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px var(--accent);
-    }
-
-    .kw-btn.active {
-      background: var(--kw-active-bg);
-      border-color: var(--kw-active-border);
-      color: var(--text);
-    }
+    .kw-btn:hover, .kw-btn:focus-visible { color: var(--text); border-color: var(--muted); outline: none; }
+    .kw-btn:focus-visible { box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px var(--accent); }
+    .kw-btn.active { background: var(--kw-active-bg); border-color: var(--kw-active-border); color: var(--text); }
 
     @media (prefers-reduced-motion: reduce) {
       .poster-img, .film-info, .blur-fill, .feedback { transition: none; }
@@ -368,38 +358,35 @@
 
   <span class="wordmark">MoviePalace</span>
 
-  <!-- Poster -->
   <div class="poster-wrap">
     <p class="poster-placeholder" id="placeholder">Loading…</p>
     <img class="poster-img loading" id="posterImg" alt="" aria-hidden="true">
   </div>
 
-  <!-- Revealed film title / year -->
   <div class="film-info" id="filmInfo" aria-live="polite">
     <div class="film-title" id="filmTitle"></div>
     <div class="film-year"  id="filmYear"></div>
   </div>
 
-  <!-- Primary controls -->
   <div class="controls">
     <button class="btn"             id="btnNew"    type="button">New Film</button>
     <button class="btn btn-primary" id="btnReveal" type="button" disabled>Reveal</button>
   </div>
 
-  <!-- Blur progress -->
   <div class="blur-track" aria-hidden="true">
     <div class="blur-fill" id="blurFill" style="width:0%"></div>
   </div>
 
-  <!-- Guess -->
   <section class="guess-section" aria-label="Guess the film">
     <div class="guess-header">
       <span class="guess-label">Your guess</span>
       <span class="stats" id="stats" aria-live="polite">
-        <span class="stat-value" id="statGuesses">0</span> guess ·
-        <span class="stat-value" id="statHints">0</span> hint
+        <span class="n" id="statGuesses">0</span> <span id="lblGuesses">guesses</span>
+        &nbsp;·&nbsp;
+        <span class="n" id="statHints">0</span> <span id="lblHints">hints</span>
       </span>
     </div>
+
     <div class="guess-row">
       <input
         class="guess-input"
@@ -408,16 +395,29 @@
         placeholder="Name the film…"
         autocomplete="off"
         spellcheck="false"
+        aria-autocomplete="list"
+        aria-haspopup="listbox"
+        aria-expanded="false"
+        aria-controls="suggestDrop"
         disabled
       >
       <button class="btn-guess" id="btnGuess" type="button" disabled>Submit</button>
+
+      <!-- Autocomplete dropdown -->
+      <div
+        class="suggest-drop"
+        id="suggestDrop"
+        role="listbox"
+        aria-label="Matching films"
+        hidden
+      ></div>
     </div>
+
     <div class="feedback" id="feedback" role="alert" aria-live="polite"></div>
   </section>
 
-  <!-- Keyword hints -->
   <div class="keywords-section" id="keywordsSection">
-    <span class="keywords-label" id="kwLabel"></span>
+    <span class="section-label" id="kwLabel"></span>
     <div class="keywords-cloud" id="kwCloud"></div>
   </div>
 
@@ -432,9 +432,12 @@
     const blurFill    = document.getElementById("blurFill");
     const guessInput  = document.getElementById("guessInput");
     const btnGuess    = document.getElementById("btnGuess");
+    const suggestDrop = document.getElementById("suggestDrop");
     const feedback    = document.getElementById("feedback");
     const statGuesses = document.getElementById("statGuesses");
     const statHints   = document.getElementById("statHints");
+    const lblGuesses  = document.getElementById("lblGuesses");
+    const lblHints    = document.getElementById("lblHints");
     const kwCloud     = document.getElementById("kwCloud");
     const kwLabel     = document.getElementById("kwLabel");
 
@@ -444,64 +447,53 @@
     let revealed   = false;
     let solved     = false;
     let guessCount = 0;
-    let hintSet    = new Set();   // keyword IDs activated at least once
-    let activeKws  = new Set();   // keyword IDs currently toggled on
+    let hintSet    = new Set();
+    let activeKws  = new Set();
 
-    // ─── Stats ───────────────────────────────────────────────────────────
+    // Autocomplete state
+    let suggestions  = [];
+    let activeIdx    = -1;
+    let typedValue   = "";
+    let debounceTimer = null;
+
+    // ─── Stats ────────────────────────────────────────────────────────────
     function updateStats() {
-      const g = guessCount;
-      const h = hintSet.size;
+      const g = guessCount, h = hintSet.size;
       statGuesses.textContent = g;
       statHints.textContent   = h;
-      // Pluralise the labels
-      statGuesses.nextSibling.textContent = g === 1 ? " guess · " : " guesses · ";
-      statHints.nextSibling.textContent   = h === 1 ? " hint"     : " hints";
+      lblGuesses.textContent  = g === 1 ? "guess" : "guesses";
+      lblHints.textContent    = h === 1 ? "hint"  : "hints";
     }
 
     // ─── Blur ─────────────────────────────────────────────────────────────
-    function totalWeight(kws) {
-      return kws.reduce((s, k) => s + 1 / k.movieCount, 0);
-    }
-
-    function clickedWeight(kws) {
-      return kws
-        .filter(k => activeKws.has(k.id))
-        .reduce((s, k) => s + 1 / k.movieCount, 0);
-    }
+    function totalWeight(kws)   { return kws.reduce((s, k) => s + 1 / k.movieCount, 0); }
+    function clickedWeight(kws) { return kws.filter(k => activeKws.has(k.id)).reduce((s, k) => s + 1 / k.movieCount, 0); }
 
     function computeBlurPx(kws) {
       if (!kws || kws.length === 0) return BLUR_MAX;
-      const tw = totalWeight(kws);
-      const cw = clickedWeight(kws);
-      return BLUR_MAX * Math.max(0, 1 - cw / tw);
+      return BLUR_MAX * Math.max(0, 1 - clickedWeight(kws) / totalWeight(kws));
     }
 
     function applyBlur() {
       const kws = current?.keywords ?? [];
-
       if (revealed) {
         posterImg.style.filter = "blur(0px) brightness(1) saturate(1)";
         posterImg.classList.add("no-blur");
         blurFill.style.width = "100%";
         return;
       }
-
-      const blurPx   = computeBlurPx(kws);
-      const clearFrac = 1 - blurPx / BLUR_MAX;
-      const brightness = 0.7 + clearFrac * 0.3;
-      const saturation = 0.75 + clearFrac * 0.25;
-
+      const px = computeBlurPx(kws);
+      const f  = 1 - px / BLUR_MAX;
       posterImg.style.filter =
-        `blur(${blurPx.toFixed(1)}px) brightness(${brightness.toFixed(2)}) saturate(${saturation.toFixed(2)})`;
-      posterImg.classList.toggle("no-blur", blurPx < 0.5);
-      blurFill.style.width = `${(clearFrac * 100).toFixed(1)}%`;
+        `blur(${px.toFixed(1)}px) brightness(${(0.7 + f * 0.3).toFixed(2)}) saturate(${(0.75 + f * 0.25).toFixed(2)})`;
+      posterImg.classList.toggle("no-blur", px < 0.5);
+      blurFill.style.width = `${(f * 100).toFixed(1)}%`;
     }
 
-    // ─── Reveal toggle ────────────────────────────────────────────────────
+    // ─── Reveal ───────────────────────────────────────────────────────────
     function setRevealed(on) {
       revealed = on;
       applyBlur();
-
       filmInfo.classList.toggle("revealed", on);
       if (on) {
         filmTitle.textContent = current?.title ?? "";
@@ -514,14 +506,14 @@
       }
     }
 
-    // ─── Feedback message ─────────────────────────────────────────────────
-    function showFeedback(msg, kind /* "wrong" | "success" */) {
+    // ─── Feedback ─────────────────────────────────────────────────────────
+    function showFeedback(msg, kind) {
       feedback.textContent = msg;
       feedback.className   = `feedback ${kind} visible`;
     }
 
     function clearFeedback() {
-      feedback.className = "feedback";
+      feedback.className   = "feedback";
       feedback.textContent = "";
     }
 
@@ -533,6 +525,7 @@
     function submitGuess() {
       const raw = guessInput.value.trim();
       if (!raw || !current || solved) return;
+      closeDrop();
 
       guessCount++;
       updateStats();
@@ -545,44 +538,186 @@
         btnGuess.disabled   = true;
         guessInput.value    = "";
       } else {
-        showFeedback(`Not quite — try again`, "wrong");
+        showFeedback("Not quite — try again", "wrong");
         guessInput.value = "";
+        typedValue = "";
         guessInput.focus();
       }
     }
 
-    // ─── Keyword size (inversely proportional to movieCount) ──────────────
+    // ─── Autocomplete dropdown ────────────────────────────────────────────
+    function openDrop() {
+      suggestDrop.hidden = false;
+      guessInput.setAttribute("aria-expanded", "true");
+    }
+
+    function closeDrop() {
+      suggestDrop.hidden = true;
+      guessInput.setAttribute("aria-expanded", "false");
+      guessInput.removeAttribute("aria-activedescendant");
+      activeIdx = -1;
+      suggestions = [];
+    }
+
+    function renderDrop() {
+      suggestDrop.innerHTML = "";
+
+      if (suggestions.length === 0) {
+        closeDrop();
+        return;
+      }
+
+      suggestions.forEach((item, i) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "suggest-item";
+        btn.role = "option";
+        btn.id   = `suggest-opt-${i}`;
+        btn.setAttribute("aria-selected", "false");
+
+        const titleSpan = document.createElement("span");
+        titleSpan.className = "suggest-title";
+        titleSpan.textContent = item.title;
+
+        const yearSpan = document.createElement("span");
+        yearSpan.className = "suggest-year";
+        yearSpan.textContent = item.year ?? "";
+
+        btn.appendChild(titleSpan);
+        btn.appendChild(yearSpan);
+
+        btn.addEventListener("mousedown", (e) => {
+          // mousedown fires before blur; prevent blur from closing drop first
+          e.preventDefault();
+          selectSuggestion(item);
+        });
+
+        suggestDrop.appendChild(btn);
+      });
+
+      openDrop();
+      setActiveIdx(-1);   // no item highlighted yet
+    }
+
+    function setActiveIdx(idx) {
+      activeIdx = idx;
+      const items = suggestDrop.querySelectorAll(".suggest-item");
+
+      items.forEach((el, i) => {
+        const on = i === idx;
+        el.setAttribute("aria-selected", on ? "true" : "false");
+      });
+
+      if (idx >= 0 && items[idx]) {
+        guessInput.setAttribute("aria-activedescendant", items[idx].id);
+        guessInput.value = suggestions[idx].title;
+      } else {
+        guessInput.removeAttribute("aria-activedescendant");
+        guessInput.value = typedValue;
+      }
+    }
+
+    function selectSuggestion(item) {
+      guessInput.value = item.title;
+      typedValue = item.title;
+      closeDrop();
+      guessInput.focus();
+    }
+
+    async function fetchSuggestions(q) {
+      try {
+        const res = await fetch(`/v1/movies/suggest?q=${encodeURIComponent(q)}`);
+        if (!res.ok) { closeDrop(); return; }
+        const data = await res.json();
+        suggestions = data.results ?? [];
+        renderDrop();
+      } catch {
+        closeDrop();
+      }
+    }
+
+    // ─── Input events ─────────────────────────────────────────────────────
+    guessInput.addEventListener("input", () => {
+      typedValue = guessInput.value;
+      activeIdx  = -1;
+      clearFeedback();
+
+      clearTimeout(debounceTimer);
+      const q = guessInput.value.trim();
+      if (q.length < 2) { closeDrop(); return; }
+
+      debounceTimer = setTimeout(() => fetchSuggestions(q), 200);
+    });
+
+    guessInput.addEventListener("keydown", (e) => {
+      // If dropdown is open, handle navigation
+      if (!suggestDrop.hidden) {
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          setActiveIdx(Math.min(activeIdx + 1, suggestions.length - 1));
+          return;
+        }
+        if (e.key === "ArrowUp") {
+          e.preventDefault();
+          setActiveIdx(Math.max(activeIdx - 1, -1));
+          return;
+        }
+        if (e.key === "Enter") {
+          e.preventDefault();
+          if (activeIdx >= 0) {
+            selectSuggestion(suggestions[activeIdx]);
+          } else {
+            closeDrop();
+            submitGuess();
+          }
+          return;
+        }
+        if (e.key === "Escape") {
+          e.preventDefault();
+          guessInput.value = typedValue;
+          closeDrop();
+          return;
+        }
+      } else if (e.key === "Enter") {
+        submitGuess();
+      }
+    });
+
+    // Close on click outside
+    document.addEventListener("mousedown", (e) => {
+      if (!suggestDrop.hidden &&
+          !guessInput.contains(e.target) &&
+          !suggestDrop.contains(e.target)) {
+        closeDrop();
+      }
+    });
+
+    // ─── Keyword rendering ────────────────────────────────────────────────
     function kwFontSize(movieCount, minCount, maxCount) {
       const range = maxCount - minCount || 1;
-      const norm  = 1 - (movieCount - minCount) / range; // 1 = most specific
+      const norm  = 1 - (movieCount - minCount) / range;
       return (0.55 + norm * 0.5).toFixed(3) + "rem";
     }
 
-    // ─── Render keywords ──────────────────────────────────────────────────
     function renderKeywords(kws) {
       kwCloud.innerHTML = "";
       if (!kws || kws.length === 0) { kwLabel.textContent = ""; return; }
-
       kwLabel.textContent = "Hints";
 
       const counts   = kws.map(k => k.movieCount);
       const minCount = Math.min(...counts);
       const maxCount = Math.max(...counts);
       const total    = totalWeight(kws);
-
-      // Shuffle so hint order isn't predictable
       const shuffled = [...kws].sort(() => Math.random() - 0.5);
 
       for (const kw of shuffled) {
         const btn = document.createElement("button");
-        btn.type      = "button";
+        btn.type = "button";
         btn.className = "kw-btn";
         btn.textContent = kw.name;
         btn.dataset.id  = String(kw.id);
         btn.style.fontSize = kwFontSize(kw.movieCount, minCount, maxCount);
-
-        const pct = (1 / kw.movieCount / total * 100).toFixed(0);
-        btn.title = `+${pct}% reveal`;
+        btn.title = `+${(1 / kw.movieCount / total * 100).toFixed(0)}% reveal`;
 
         btn.addEventListener("click", () => {
           if (solved || revealed) return;
@@ -591,7 +726,7 @@
             btn.classList.remove("active");
           } else {
             activeKws.add(kw.id);
-            hintSet.add(kw.id);   // track for stat — never decremented
+            hintSet.add(kw.id);
             btn.classList.add("active");
           }
           applyBlur();
@@ -602,20 +737,21 @@
       }
     }
 
-    // ─── Load a random movie ──────────────────────────────────────────────
+    // ─── Load random movie ────────────────────────────────────────────────
     async function loadRandom() {
-      // Reset state
       setRevealed(false);
       clearFeedback();
+      closeDrop();
       activeKws.clear();
       hintSet.clear();
       guessCount = 0;
       solved     = false;
       updateStats();
-      kwCloud.innerHTML = "";
+      kwCloud.innerHTML   = "";
       kwLabel.textContent = "";
       blurFill.style.width = "0%";
       guessInput.value    = "";
+      typedValue          = "";
       guessInput.disabled = true;
       btnGuess.disabled   = true;
       btnReveal.disabled  = true;
@@ -634,11 +770,7 @@
         }
 
         current = await res.json();
-
-        if (!current.posterUrl) {
-          loadRandom();
-          return;
-        }
+        if (!current.posterUrl) { loadRandom(); return; }
 
         renderKeywords(current.keywords ?? []);
 
@@ -668,21 +800,11 @@
       }
     }
 
-    // ─── Event listeners ──────────────────────────────────────────────────
+    // ─── Wiring ───────────────────────────────────────────────────────────
     btnNew.addEventListener("click", loadRandom);
-
-    btnReveal.addEventListener("click", () => {
-      if (solved) return;
-      setRevealed(!revealed);
-    });
-
     btnGuess.addEventListener("click", submitGuess);
+    btnReveal.addEventListener("click", () => { if (!solved) setRevealed(!revealed); });
 
-    guessInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") submitGuess();
-    });
-
-    // ─── Init ─────────────────────────────────────────────────────────────
     updateStats();
     loadRandom();
   </script>
