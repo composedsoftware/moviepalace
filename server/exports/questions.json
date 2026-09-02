@@ -1,0 +1,178 @@
+{
+  "version": 1,
+  "schema": "moviepalace",
+  "exportedAt": "2026-09-02T01:36:50.528Z",
+  "count": 11,
+  "questions": [
+    {
+      "id": 2,
+      "type": "movie_detail",
+      "difficulty": "easy",
+      "payload": "{\"question\":\"What year was Inception released?\",\"choices\":[\"2008\",\"2009\",\"2010\",\"2011\"],\"correct_index\":2}",
+      "createdAt": "2026-07-13T01:18:49.202Z",
+      "movieIds": [
+        27205
+      ]
+    },
+    {
+      "id": 14,
+      "type": "cast_links",
+      "difficulty": "medium",
+      "payload": "{\"puzzle_number\":1,\"chain\":[{\"pos\":1,\"film\":\"Jurassic Park\",\"tmdb_id\":329},{\"pos\":2,\"film\":\"Pulp Fiction\",\"tmdb_id\":680},{\"pos\":3,\"film\":\"Gattaca\",\"tmdb_id\":782},{\"pos\":4,\"film\":\"Training Day\",\"tmdb_id\":2034},{\"pos\":5,\"film\":\"Philadelphia\",\"tmdb_id\":9800},{\"pos\":6,\"film\":\"Cast Away\",\"tmdb_id\":8358},{\"pos\":7,\"film\":\"As Good as It Gets\",\"tmdb_id\":2898}],\"links\":[{\"from_pos\":1,\"to_pos\":2,\"possible_actors\":[{\"id\":2231,\"name\":\"Samuel L. Jackson\"}]},{\"from_pos\":2,\"to_pos\":3,\"possible_actors\":[{\"id\":139,\"name\":\"Uma Thurman\"}]},{\"from_pos\":3,\"to_pos\":4,\"possible_actors\":[{\"id\":569,\"name\":\"Ethan Hawke\"}]},{\"from_pos\":4,\"to_pos\":5,\"possible_actors\":[{\"id\":5292,\"name\":\"Denzel Washington\"}]},{\"from_pos\":5,\"to_pos\":6,\"possible_actors\":[{\"id\":31,\"name\":\"Tom Hanks\"}]},{\"from_pos\":6,\"to_pos\":7,\"possible_actors\":[{\"id\":9994,\"name\":\"Helen Hunt\"}]}]}",
+      "createdAt": "2026-08-04T19:21:36.004Z",
+      "movieIds": [
+        329,
+        680,
+        782,
+        2034,
+        2898,
+        8358,
+        9800
+      ]
+    },
+    {
+      "id": 15,
+      "type": "cast_links",
+      "difficulty": "medium",
+      "payload": "{\"puzzle_number\":2,\"chain\":[{\"pos\":1,\"film\":\"The Matrix\",\"tmdb_id\":603},{\"pos\":2,\"film\":\"Memento\",\"tmdb_id\":77},{\"pos\":3,\"film\":\"L.A. Confidential\",\"tmdb_id\":2118},{\"pos\":4,\"film\":\"Gladiator\",\"tmdb_id\":98},{\"pos\":5,\"film\":\"Walk the Line\",\"tmdb_id\":69},{\"pos\":6,\"film\":\"Legally Blonde\",\"tmdb_id\":8835},{\"pos\":7,\"film\":\"The Royal Tenenbaums\",\"tmdb_id\":9428}],\"links\":[{\"from_pos\":1,\"to_pos\":2,\"possible_actors\":[{\"id\":530,\"name\":\"Carrie-Anne Moss\"},{\"id\":532,\"name\":\"Joe Pantoliano\"}]},{\"from_pos\":2,\"to_pos\":3,\"possible_actors\":[{\"id\":529,\"name\":\"Guy Pearce\"}]},{\"from_pos\":3,\"to_pos\":4,\"possible_actors\":[{\"id\":934,\"name\":\"Russell Crowe\"}]},{\"from_pos\":4,\"to_pos\":5,\"possible_actors\":[{\"id\":73421,\"name\":\"Joaquin Phoenix\"}]},{\"from_pos\":5,\"to_pos\":6,\"possible_actors\":[{\"id\":368,\"name\":\"Reese Witherspoon\"}]},{\"from_pos\":6,\"to_pos\":7,\"possible_actors\":[{\"id\":36422,\"name\":\"Luke Wilson\"}]}]}",
+      "createdAt": "2026-08-04T19:21:36.486Z",
+      "movieIds": [
+        69,
+        77,
+        98,
+        603,
+        2118,
+        8835,
+        9428
+      ]
+    },
+    {
+      "id": 16,
+      "type": "cast_links",
+      "difficulty": "hard",
+      "payload": "{\"puzzle_number\":3,\"chain\":[{\"pos\":1,\"film\":\"Jaws\",\"tmdb_id\":578},{\"pos\":2,\"film\":\"Close Encounters of the Third Kind\",\"tmdb_id\":840},{\"pos\":3,\"film\":\"Young Frankenstein\",\"tmdb_id\":3034},{\"pos\":4,\"film\":\"Blazing Saddles\",\"tmdb_id\":11072},{\"pos\":5,\"film\":\"Clue\",\"tmdb_id\":15196},{\"pos\":6,\"film\":\"The Rocky Horror Picture Show\",\"tmdb_id\":36685},{\"pos\":7,\"film\":\"Thelma & Louise\",\"tmdb_id\":1541}],\"links\":[{\"from_pos\":1,\"to_pos\":2,\"possible_actors\":[{\"id\":3037,\"name\":\"Richard Dreyfuss\"}]},{\"from_pos\":2,\"to_pos\":3,\"possible_actors\":[{\"id\":8437,\"name\":\"Teri Garr\"}]},{\"from_pos\":3,\"to_pos\":4,\"possible_actors\":[{\"id\":3460,\"name\":\"Gene Wilder\"},{\"id\":29803,\"name\":\"Madeline Kahn\"},{\"id\":152711,\"name\":\"Liam Dunn\"}]},{\"from_pos\":4,\"to_pos\":5,\"possible_actors\":[{\"id\":29803,\"name\":\"Madeline Kahn\"}]},{\"from_pos\":5,\"to_pos\":6,\"possible_actors\":[{\"id\":13472,\"name\":\"Tim Curry\"}]},{\"from_pos\":6,\"to_pos\":7,\"possible_actors\":[{\"id\":4038,\"name\":\"Susan Sarandon\"}]}]}",
+      "createdAt": "2026-08-04T19:21:36.878Z",
+      "movieIds": [
+        578,
+        840,
+        1541,
+        3034,
+        11072,
+        15196,
+        36685
+      ]
+    },
+    {
+      "id": 17,
+      "type": "cast_links",
+      "difficulty": "medium",
+      "payload": "{\"puzzle_number\":4,\"chain\":[{\"pos\":1,\"film\":\"Get Out\",\"tmdb_id\":419430},{\"pos\":2,\"film\":\"Black Panther\",\"tmdb_id\":284054},{\"pos\":3,\"film\":\"Creed\",\"tmdb_id\":312221},{\"pos\":4,\"film\":\"Rocky\",\"tmdb_id\":1366},{\"pos\":5,\"film\":\"The Godfather Part II\",\"tmdb_id\":240},{\"pos\":6,\"film\":\"Taxi Driver\",\"tmdb_id\":103},{\"pos\":7,\"film\":\"The Silence of the Lambs\",\"tmdb_id\":274}],\"links\":[{\"from_pos\":1,\"to_pos\":2,\"possible_actors\":[{\"id\":206919,\"name\":\"Daniel Kaluuya\"}]},{\"from_pos\":2,\"to_pos\":3,\"possible_actors\":[{\"id\":135651,\"name\":\"Michael B. Jordan\"}]},{\"from_pos\":3,\"to_pos\":4,\"possible_actors\":[{\"id\":16483,\"name\":\"Sylvester Stallone\"}]},{\"from_pos\":4,\"to_pos\":5,\"possible_actors\":[{\"id\":3094,\"name\":\"Talia Shire\"}]},{\"from_pos\":5,\"to_pos\":6,\"possible_actors\":[{\"id\":380,\"name\":\"Robert De Niro\"}]},{\"from_pos\":6,\"to_pos\":7,\"possible_actors\":[{\"id\":1038,\"name\":\"Jodie Foster\"}]}]}",
+      "createdAt": "2026-08-04T19:21:37.261Z",
+      "movieIds": [
+        103,
+        240,
+        274,
+        1366,
+        284054,
+        312221,
+        419430
+      ]
+    },
+    {
+      "id": 18,
+      "type": "cast_links",
+      "difficulty": "easy",
+      "payload": "{\"puzzle_number\":5,\"chain\":[{\"pos\":1,\"film\":\"Shrek\",\"tmdb_id\":808},{\"pos\":2,\"film\":\"There's Something About Mary\",\"tmdb_id\":544},{\"pos\":3,\"film\":\"Zoolander\",\"tmdb_id\":9398},{\"pos\":4,\"film\":\"Wedding Crashers\",\"tmdb_id\":9522},{\"pos\":5,\"film\":\"A Star Is Born\",\"tmdb_id\":332562},{\"pos\":6,\"film\":\"House of Gucci\",\"tmdb_id\":644495},{\"pos\":7,\"film\":\"Marriage Story\",\"tmdb_id\":492188}],\"links\":[{\"from_pos\":1,\"to_pos\":2,\"possible_actors\":[{\"id\":6941,\"name\":\"Cameron Diaz\"}]},{\"from_pos\":2,\"to_pos\":3,\"possible_actors\":[{\"id\":7399,\"name\":\"Ben Stiller\"}]},{\"from_pos\":3,\"to_pos\":4,\"possible_actors\":[{\"id\":887,\"name\":\"Owen Wilson\"}]},{\"from_pos\":4,\"to_pos\":5,\"possible_actors\":[{\"id\":51329,\"name\":\"Bradley Cooper\"}]},{\"from_pos\":5,\"to_pos\":6,\"possible_actors\":[{\"id\":237405,\"name\":\"Lady Gaga\"}]},{\"from_pos\":6,\"to_pos\":7,\"possible_actors\":[{\"id\":1023139,\"name\":\"Adam Driver\"}]}]}",
+      "createdAt": "2026-08-04T19:21:37.656Z",
+      "movieIds": [
+        544,
+        808,
+        9398,
+        9522,
+        332562,
+        492188,
+        644495
+      ]
+    },
+    {
+      "id": 19,
+      "type": "cast_links",
+      "difficulty": "medium",
+      "payload": "{\"puzzle_number\":6,\"chain\":[{\"pos\":1,\"film\":\"Blade Runner\",\"tmdb_id\":78},{\"pos\":2,\"film\":\"Star Wars: A New Hope\",\"tmdb_id\":11},{\"pos\":3,\"film\":\"When Harry Met Sally...\",\"tmdb_id\":639},{\"pos\":4,\"film\":\"The Princess Bride\",\"tmdb_id\":2493},{\"pos\":5,\"film\":\"Forrest Gump\",\"tmdb_id\":13},{\"pos\":6,\"film\":\"Apollo 13\",\"tmdb_id\":568},{\"pos\":7,\"film\":\"A Few Good Men\",\"tmdb_id\":881}],\"links\":[{\"from_pos\":1,\"to_pos\":2,\"possible_actors\":[{\"id\":3,\"name\":\"Harrison Ford\"}]},{\"from_pos\":2,\"to_pos\":3,\"possible_actors\":[{\"id\":4,\"name\":\"Carrie Fisher\"}]},{\"from_pos\":3,\"to_pos\":4,\"possible_actors\":[]},{\"from_pos\":4,\"to_pos\":5,\"possible_actors\":[{\"id\":32,\"name\":\"Robin Wright\"}]},{\"from_pos\":5,\"to_pos\":6,\"possible_actors\":[{\"id\":31,\"name\":\"Tom Hanks\"},{\"id\":33,\"name\":\"Gary Sinise\"}]},{\"from_pos\":6,\"to_pos\":7,\"possible_actors\":[{\"id\":4724,\"name\":\"Kevin Bacon\"}]}]}",
+      "createdAt": "2026-08-04T19:21:38.128Z",
+      "movieIds": [
+        11,
+        13,
+        78,
+        568,
+        639,
+        881,
+        2493
+      ]
+    },
+    {
+      "id": 20,
+      "type": "cast_links",
+      "difficulty": "medium",
+      "payload": "{\"puzzle_number\":7,\"chain\":[{\"pos\":1,\"film\":\"Raging Bull\",\"tmdb_id\":1578},{\"pos\":2,\"film\":\"Goodfellas\",\"tmdb_id\":769},{\"pos\":3,\"film\":\"Home Alone\",\"tmdb_id\":771},{\"pos\":4,\"film\":\"Beetlejuice\",\"tmdb_id\":4011},{\"pos\":5,\"film\":\"Batman\",\"tmdb_id\":268},{\"pos\":6,\"film\":\"One Flew Over the Cuckoo's Nest\",\"tmdb_id\":510},{\"pos\":7,\"film\":\"Matilda\",\"tmdb_id\":10830}],\"links\":[{\"from_pos\":1,\"to_pos\":2,\"possible_actors\":[{\"id\":380,\"name\":\"Robert De Niro\"},{\"id\":4517,\"name\":\"Joe Pesci\"},{\"id\":7164,\"name\":\"Frank Vincent\"}]},{\"from_pos\":2,\"to_pos\":3,\"possible_actors\":[{\"id\":4517,\"name\":\"Joe Pesci\"}]},{\"from_pos\":3,\"to_pos\":4,\"possible_actors\":[{\"id\":11514,\"name\":\"Catherine O'Hara\"}]},{\"from_pos\":4,\"to_pos\":5,\"possible_actors\":[{\"id\":2232,\"name\":\"Michael Keaton\"}]},{\"from_pos\":5,\"to_pos\":6,\"possible_actors\":[{\"id\":514,\"name\":\"Jack Nicholson\"}]},{\"from_pos\":6,\"to_pos\":7,\"possible_actors\":[{\"id\":518,\"name\":\"Danny DeVito\"}]}]}",
+      "createdAt": "2026-08-04T19:21:38.542Z",
+      "movieIds": [
+        268,
+        510,
+        769,
+        771,
+        1578,
+        4011,
+        10830
+      ]
+    },
+    {
+      "id": 22,
+      "type": "cast_links",
+      "difficulty": "medium",
+      "payload": "{\"puzzle_number\":9,\"chain\":[{\"pos\":1,\"film\":\"Fight Club\",\"tmdb_id\":550},{\"pos\":2,\"film\":\"Ocean's Eleven\",\"tmdb_id\":161},{\"pos\":3,\"film\":\"Good Will Hunting\",\"tmdb_id\":489},{\"pos\":4,\"film\":\"Mrs. Doubtfire\",\"tmdb_id\":788},{\"pos\":5,\"film\":\"GoldenEye\",\"tmdb_id\":710},{\"pos\":6,\"film\":\"Shakespeare in Love\",\"tmdb_id\":1934},{\"pos\":7,\"film\":\"Iron Man\",\"tmdb_id\":1726}],\"links\":[{\"from_pos\":1,\"to_pos\":2,\"possible_actors\":[{\"id\":287,\"name\":\"Brad Pitt\"}]},{\"from_pos\":2,\"to_pos\":3,\"possible_actors\":[{\"id\":1892,\"name\":\"Matt Damon\"},{\"id\":1893,\"name\":\"Casey Affleck\"}]},{\"from_pos\":3,\"to_pos\":4,\"possible_actors\":[{\"id\":2157,\"name\":\"Robin Williams\"}]},{\"from_pos\":4,\"to_pos\":5,\"possible_actors\":[{\"id\":517,\"name\":\"Pierce Brosnan\"}]},{\"from_pos\":5,\"to_pos\":6,\"possible_actors\":[{\"id\":5309,\"name\":\"Judi Dench\"}]},{\"from_pos\":6,\"to_pos\":7,\"possible_actors\":[{\"id\":12052,\"name\":\"Gwyneth Paltrow\"}]}]}",
+      "createdAt": "2026-08-04T19:21:39.335Z",
+      "movieIds": [
+        161,
+        489,
+        550,
+        710,
+        788,
+        1726,
+        1934
+      ]
+    },
+    {
+      "id": 23,
+      "type": "cast_links",
+      "difficulty": "medium",
+      "payload": "{\"puzzle_number\":10,\"chain\":[{\"pos\":1,\"film\":\"A Nightmare on Elm Street\",\"tmdb_id\":377},{\"pos\":2,\"film\":\"Edward Scissorhands\",\"tmdb_id\":162},{\"pos\":3,\"film\":\"Girl, Interrupted\",\"tmdb_id\":3558},{\"pos\":4,\"film\":\"Mr. & Mrs. Smith\",\"tmdb_id\":787},{\"pos\":5,\"film\":\"Old School\",\"tmdb_id\":11635},{\"pos\":6,\"film\":\"Anchorman: The Legend of Ron Burgundy\",\"tmdb_id\":8699},{\"pos\":7,\"film\":\"The 40-Year-Old Virgin\",\"tmdb_id\":6957}],\"links\":[{\"from_pos\":1,\"to_pos\":2,\"possible_actors\":[{\"id\":85,\"name\":\"Johnny Depp\"}]},{\"from_pos\":2,\"to_pos\":3,\"possible_actors\":[{\"id\":1920,\"name\":\"Winona Ryder\"}]},{\"from_pos\":3,\"to_pos\":4,\"possible_actors\":[{\"id\":11701,\"name\":\"Angelina Jolie\"}]},{\"from_pos\":4,\"to_pos\":5,\"possible_actors\":[{\"id\":4937,\"name\":\"Vince Vaughn\"}]},{\"from_pos\":5,\"to_pos\":6,\"possible_actors\":[{\"id\":23659,\"name\":\"Will Ferrell\"}]},{\"from_pos\":6,\"to_pos\":7,\"possible_actors\":[{\"id\":22226,\"name\":\"Paul Rudd\"},{\"id\":4495,\"name\":\"Steve Carell\"},{\"id\":19274,\"name\":\"Seth Rogen\"}]}]}",
+      "createdAt": "2026-08-04T19:21:39.738Z",
+      "movieIds": [
+        162,
+        377,
+        787,
+        3558,
+        6957,
+        8699,
+        11635
+      ]
+    },
+    {
+      "id": 24,
+      "type": "cast_links",
+      "difficulty": "easy",
+      "payload": "{\"puzzle_number\":8,\"chain\":[{\"pos\":1,\"film\":\"The Lord of the Rings: The Fellowship of the Ring\",\"tmdb_id\":120},{\"pos\":2,\"film\":\"X-Men\",\"tmdb_id\":36657},{\"pos\":3,\"film\":\"Les Misérables\",\"tmdb_id\":82695},{\"pos\":4,\"film\":\"The Devil Wears Prada\",\"tmdb_id\":350},{\"pos\":5,\"film\":\"Mamma Mia!\",\"tmdb_id\":11631},{\"pos\":6,\"film\":\"The King's Speech\",\"tmdb_id\":45269},{\"pos\":7,\"film\":\"Pirates of the Caribbean: The Curse of the Black Pearl\",\"tmdb_id\":22}],\"links\":[{\"from_pos\":1,\"to_pos\":2,\"possible_actors\":[{\"id\":1327,\"name\":\"Ian McKellen\"}]},{\"from_pos\":2,\"to_pos\":3,\"possible_actors\":[{\"id\":6968,\"name\":\"Hugh Jackman\"}]},{\"from_pos\":3,\"to_pos\":4,\"possible_actors\":[{\"id\":1813,\"name\":\"Anne Hathaway\"}]},{\"from_pos\":4,\"to_pos\":5,\"possible_actors\":[{\"id\":5064,\"name\":\"Meryl Streep\"}]},{\"from_pos\":5,\"to_pos\":6,\"possible_actors\":[{\"id\":5472,\"name\":\"Colin Firth\"}]},{\"from_pos\":6,\"to_pos\":7,\"possible_actors\":[{\"id\":118,\"name\":\"Geoffrey Rush\"}]}]}",
+      "createdAt": "2026-08-04T19:23:00.408Z",
+      "movieIds": [
+        22,
+        120,
+        350,
+        11631,
+        36657,
+        45269,
+        82695
+      ]
+    }
+  ]
+}
