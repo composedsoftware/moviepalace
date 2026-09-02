@@ -76,7 +76,10 @@
         opacity  0.25s ease;
     }
 
-    .poster-img.loading { opacity: 0; }
+    .poster-img.loading {
+      opacity: 0;
+      transition: none !important; /* no transitions while hidden — prevents filter animating from old state */
+    }
     .poster-img.no-blur { transform: scale(1); }
 
     .poster-placeholder {
@@ -776,15 +779,22 @@
 
         const img = new Image();
         img.onload = () => {
+          // Set filter and src while loading class is still active (opacity:0,
+          // transition:none), so the blur is committed before the image is visible.
+          posterImg.style.filter = `blur(${BLUR_MAX}px) brightness(0.70) saturate(0.75)`;
           posterImg.src = current.posterUrl;
           posterImg.alt = current.title;
-          posterImg.style.filter = `blur(${BLUR_MAX}px) brightness(0.70) saturate(0.75)`;
-          placeholder.style.display = "none";
-          posterImg.classList.remove("loading");
-          btnReveal.disabled  = false;
-          guessInput.disabled = false;
-          btnGuess.disabled   = false;
-          guessInput.focus();
+
+          // Wait one frame for the browser to paint the filtered (hidden) image,
+          // then remove loading — opacity fades in with filter already fully applied.
+          requestAnimationFrame(() => {
+            placeholder.style.display = "none";
+            posterImg.classList.remove("loading");
+            btnReveal.disabled  = false;
+            guessInput.disabled = false;
+            btnGuess.disabled   = false;
+            guessInput.focus();
+          });
         };
         img.onerror = () => {
           showFeedback("Poster failed to load", "wrong");
