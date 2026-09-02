@@ -185,6 +185,61 @@ router.get(
 );
 
 /**
+ * GET /v1/movies/random
+ *
+ * Returns a random movie from the local database that has a poster image.
+ * Intended for the blurred-poster feature.
+ *
+ * Returns: { id, title, releaseDate, posterUrl }
+ */
+router.get(
+  "/random",
+  async (
+    _req: Request,
+    res: Response
+  ) => {
+    const movies = await prisma.movie.findMany({
+      where: { posterPath: { not: null } },
+      select: { id: true, title: true, releaseDate: true, posterPath: true, keywords: true },
+    });
+
+    if (!movies.length) {
+      res.status(404).json({ error: "No movies with poster images found" } satisfies ErrorResponse);
+      return;
+    }
+
+    const pick = movies[Math.floor(Math.random() * movies.length)];
+
+    // Resolve keyword movieCounts from the Keyword table
+    let keywords: { id: number; name: string; movieCount: number }[] = [];
+    try {
+      const parsed = JSON.parse(pick.keywords ?? "[]") as { id: number; name: string }[];
+      if (parsed.length > 0) {
+        const kwIds = parsed.map((k) => k.id);
+        const kwRows = await prisma.keyword.findMany({
+          where: { id: { in: kwIds } },
+          select: { id: true, movieCount: true },
+        });
+        const countMap = new Map(kwRows.map((k) => [k.id, k.movieCount]));
+        keywords = parsed.map((k) => ({
+          id: k.id,
+          name: k.name,
+          movieCount: countMap.get(k.id) ?? 1,
+        }));
+      }
+    } catch { /* ignore malformed keyword JSON */ }
+
+    res.json({
+      id: pick.id,
+      title: pick.title,
+      releaseDate: pick.releaseDate ?? null,
+      posterUrl: pick.posterPath ? `https://image.tmdb.org/t/p/w500${pick.posterPath}` : null,
+      keywords,
+    });
+  }
+);
+
+/**
  * GET /v1/movies/:movieId
  * Wraps: GET /3/movie/{movie_id}
  *

@@ -15,6 +15,8 @@
     "db:sync-actors": "ts-node src/scripts/sync-actors.ts",
     "db:migrate-cast-links-actors": "ts-node src/scripts/migrate-cast-links-actors.ts",
     "db:populate-keywords": "ts-node src/scripts/populate-keywords.ts",
+    "db:add-movie": "ts-node src/scripts/add-movie.ts",
+    "db:sort-movie-keywords": "ts-node src/scripts/sort-movie-keywords.ts",
     "db:seed-cast-links": "ts-node src/scripts/seed-cast-links.ts",
     "cleanWin": "if exist dist rmdir /s /q dist",
     "buildWin": "npm run cleanWin && tsc",

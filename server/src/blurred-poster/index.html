@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Poster</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=DM+Mono:wght@400;500&display=swap">
+  <style>
+    /* ─── Tokens ─── */
+    :root {
+      --bg:               #0C0C0E;
+      --surface:          #161618;
+      --border:           #2C2C30;
+      --text:             #EAE6DE;
+      --muted:            #7A7680;
+      --accent:           #C43A57;
+      --accent-dim:       #8C2A3E;
+      --success:          #3D8C6E;
+      --success-bg:       rgba(61, 140, 110, 0.12);
+      --wrong-bg:         rgba(196, 58, 87, 0.10);
+      --kw-active-bg:     rgba(196, 58, 87, 0.14);
+      --kw-active-border: rgba(196, 58, 87, 0.5);
+      --frame-w:          min(320px, 70vw);
+      --frame-h:          calc(var(--frame-w) * 1.5);
+      --panel-w:          min(520px, 88vw);
+      --blur-max:         28;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      min-height: 100dvh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "DM Mono", "Courier New", monospace;
+      -webkit-font-smoothing: antialiased;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 3.5rem 1.5rem 3.5rem;
+      gap: 0;
+    }
+
+    /* ─── Wordmark ─── */
+    .wordmark {
+      position: fixed;
+      top: 1.25rem;
+      left: 1.5rem;
+      font-size: 0.58rem;
+      font-weight: 500;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+      user-select: none;
+    }
+
+    /* ─── Poster ─── */
+    .poster-wrap {
+      position: relative;
+      width: var(--frame-w);
+      height: var(--frame-h);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .poster-img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scale(1.08);
+      transition:
+        filter 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+        transform 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+        opacity 0.25s ease;
+    }
+
+    .poster-img.loading  { opacity: 0; }
+    .poster-img.no-blur  { transform: scale(1); }
+
+    .poster-placeholder {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--border);
+      font-size: 0.62rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    /* ─── Film info ─── */
+    .film-info {
+      width: var(--frame-w);
+      padding-top: 1.25rem;
+      min-height: 4.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity 0.45s ease 0.15s, transform 0.45s ease 0.15s;
+    }
+
+    .film-info.revealed {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .film-title {
+      font-family: "Cormorant Garamond", Georgia, serif;
+      font-size: clamp(1.4rem, 4vw, 2rem);
+      font-weight: 600;
+      line-height: 1.15;
+      text-wrap: balance;
+    }
+
+    .film-year {
+      font-size: 0.6rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    /* ─── Controls ─── */
+    .controls {
+      width: var(--frame-w);
+      display: flex;
+      gap: 0.625rem;
+      margin-top: 1.5rem;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 0.7rem 1rem;
+      font-family: "DM Mono", monospace;
+      font-size: 0.6rem;
+      font-weight: 500;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+    }
+
+    .btn:hover, .btn:focus-visible {
+      color: var(--text);
+      border-color: var(--text);
+      outline: none;
+    }
+
+    .btn:focus-visible {
+      box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px var(--text);
+    }
+
+    .btn:disabled { opacity: 0.35; cursor: default; }
+
+    .btn-primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: var(--text);
+    }
+
+    .btn-primary:hover, .btn-primary:focus-visible {
+      background: var(--accent-dim);
+      border-color: var(--accent-dim);
+      color: var(--text);
+    }
+
+    /* ─── Progress bar ─── */
+    .blur-track {
+      width: var(--frame-w);
+      height: 2px;
+      background: var(--border);
+      margin-top: 1.25rem;
+      overflow: hidden;
+    }
+
+    .blur-fill {
+      height: 100%;
+      background: var(--accent);
+      transition: width 0.4s ease;
+    }
+
+    /* ─── Guess section ─── */
+    .guess-section {
+      width: var(--panel-w);
+      margin-top: 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .guess-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .guess-label {
+      font-size: 0.55rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .stats {
+      font-size: 0.55rem;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .stats .stat-value {
+      color: var(--text);
+    }
+
+    .guess-row {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .guess-input {
+      flex: 1;
+      font-family: "DM Mono", monospace;
+      font-size: 0.72rem;
+      letter-spacing: 0.03em;
+      padding: 0.7rem 0.85rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .guess-input::placeholder { color: var(--muted); }
+
+    .guess-input:focus {
+      border-color: var(--muted);
+    }
+
+    .guess-input:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
+
+    .btn-guess {
+      flex-shrink: 0;
+      padding: 0.7rem 1.1rem;
+      font-family: "DM Mono", monospace;
+      font-size: 0.6rem;
+      font-weight: 500;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+    }
+
+    .btn-guess:hover, .btn-guess:focus-visible {
+      color: var(--text);
+      border-color: var(--text);
+      outline: none;
+    }
+
+    .btn-guess:focus-visible {
+      box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px var(--text);
+    }
+
+    .btn-guess:disabled { opacity: 0.35; cursor: default; }
+
+    /* ─── Feedback ─── */
+    .feedback {
+      font-size: 0.62rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      min-height: 1.2rem;
+      padding: 0.55rem 0.75rem;
+      opacity: 0;
+      transition: opacity 0.2s ease, background 0.2s ease;
+    }
+
+    .feedback.visible { opacity: 1; }
+
+    .feedback.wrong {
+      background: var(--wrong-bg);
+      border-left: 2px solid var(--accent);
+      color: var(--accent);
+    }
+
+    .feedback.success {
+      background: var(--success-bg);
+      border-left: 2px solid var(--success);
+      color: var(--success);
+    }
+
+    /* ─── Keywords ─── */
+    .keywords-section {
+      width: var(--panel-w);
+      margin-top: 1.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.9rem;
+    }
+
+    .keywords-label {
+      font-size: 0.55rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .keywords-cloud {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: baseline;
+    }
+
+    .kw-btn {
+      font-family: "DM Mono", monospace;
+      font-weight: 400;
+      letter-spacing: 0.04em;
+      padding: 0.3em 0.65em;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      line-height: 1.6;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+    }
+
+    .kw-btn:hover, .kw-btn:focus-visible {
+      color: var(--text);
+      border-color: var(--muted);
+      outline: none;
+    }
+
+    .kw-btn:focus-visible {
+      box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px var(--accent);
+    }
+
+    .kw-btn.active {
+      background: var(--kw-active-bg);
+      border-color: var(--kw-active-border);
+      color: var(--text);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .poster-img, .film-info, .blur-fill, .feedback { transition: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <span class="wordmark">MoviePalace</span>
+
+  <!-- Poster -->
+  <div class="poster-wrap">
+    <p class="poster-placeholder" id="placeholder">Loading…</p>
+    <img class="poster-img loading" id="posterImg" alt="" aria-hidden="true">
+  </div>
+
+  <!-- Revealed film title / year -->
+  <div class="film-info" id="filmInfo" aria-live="polite">
+    <div class="film-title" id="filmTitle"></div>
+    <div class="film-year"  id="filmYear"></div>
+  </div>
+
+  <!-- Primary controls -->
+  <div class="controls">
+    <button class="btn"             id="btnNew"    type="button">New Film</button>
+    <button class="btn btn-primary" id="btnReveal" type="button" disabled>Reveal</button>
+  </div>
+
+  <!-- Blur progress -->
+  <div class="blur-track" aria-hidden="true">
+    <div class="blur-fill" id="blurFill" style="width:0%"></div>
+  </div>
+
+  <!-- Guess -->
+  <section class="guess-section" aria-label="Guess the film">
+    <div class="guess-header">
+      <span class="guess-label">Your guess</span>
+      <span class="stats" id="stats" aria-live="polite">
+        <span class="stat-value" id="statGuesses">0</span> guess ·
+        <span class="stat-value" id="statHints">0</span> hint
+      </span>
+    </div>
+    <div class="guess-row">
+      <input
+        class="guess-input"
+        id="guessInput"
+        type="text"
+        placeholder="Name the film…"
+        autocomplete="off"
+        spellcheck="false"
+        disabled
+      >
+      <button class="btn-guess" id="btnGuess" type="button" disabled>Submit</button>
+    </div>
+    <div class="feedback" id="feedback" role="alert" aria-live="polite"></div>
+  </section>
+
+  <!-- Keyword hints -->
+  <div class="keywords-section" id="keywordsSection">
+    <span class="keywords-label" id="kwLabel"></span>
+    <div class="keywords-cloud" id="kwCloud"></div>
+  </div>
+
+  <script>
+    const posterImg   = document.getElementById("posterImg");
+    const placeholder = document.getElementById("placeholder");
+    const filmInfo    = document.getElementById("filmInfo");
+    const filmTitle   = document.getElementById("filmTitle");
+    const filmYear    = document.getElementById("filmYear");
+    const btnNew      = document.getElementById("btnNew");
+    const btnReveal   = document.getElementById("btnReveal");
+    const blurFill    = document.getElementById("blurFill");
+    const guessInput  = document.getElementById("guessInput");
+    const btnGuess    = document.getElementById("btnGuess");
+    const feedback    = document.getElementById("feedback");
+    const statGuesses = document.getElementById("statGuesses");
+    const statHints   = document.getElementById("statHints");
+    const kwCloud     = document.getElementById("kwCloud");
+    const kwLabel     = document.getElementById("kwLabel");
+
+    const BLUR_MAX = 28;
+
+    let current    = null;
+    let revealed   = false;
+    let solved     = false;
+    let guessCount = 0;
+    let hintSet    = new Set();   // keyword IDs activated at least once
+    let activeKws  = new Set();   // keyword IDs currently toggled on
+
+    // ─── Stats ───────────────────────────────────────────────────────────
+    function updateStats() {
+      const g = guessCount;
+      const h = hintSet.size;
+      statGuesses.textContent = g;
+      statHints.textContent   = h;
+      // Pluralise the labels
+      statGuesses.nextSibling.textContent = g === 1 ? " guess · " : " guesses · ";
+      statHints.nextSibling.textContent   = h === 1 ? " hint"     : " hints";
+    }
+
+    // ─── Blur ─────────────────────────────────────────────────────────────
+    function totalWeight(kws) {
+      return kws.reduce((s, k) => s + 1 / k.movieCount, 0);
+    }
+
+    function clickedWeight(kws) {
+      return kws
+        .filter(k => activeKws.has(k.id))
+        .reduce((s, k) => s + 1 / k.movieCount, 0);
+    }
+
+    function computeBlurPx(kws) {
+      if (!kws || kws.length === 0) return BLUR_MAX;
+      const tw = totalWeight(kws);
+      const cw = clickedWeight(kws);
+      return BLUR_MAX * Math.max(0, 1 - cw / tw);
+    }
+
+    function applyBlur() {
+      const kws = current?.keywords ?? [];
+
+      if (revealed) {
+        posterImg.style.filter = "blur(0px) brightness(1) saturate(1)";
+        posterImg.classList.add("no-blur");
+        blurFill.style.width = "100%";
+        return;
+      }
+
+      const blurPx   = computeBlurPx(kws);
+      const clearFrac = 1 - blurPx / BLUR_MAX;
+      const brightness = 0.7 + clearFrac * 0.3;
+      const saturation = 0.75 + clearFrac * 0.25;
+
+      posterImg.style.filter =
+        `blur(${blurPx.toFixed(1)}px) brightness(${brightness.toFixed(2)}) saturate(${saturation.toFixed(2)})`;
+      posterImg.classList.toggle("no-blur", blurPx < 0.5);
+      blurFill.style.width = `${(clearFrac * 100).toFixed(1)}%`;
+    }
+
+    // ─── Reveal toggle ────────────────────────────────────────────────────
+    function setRevealed(on) {
+      revealed = on;
+      applyBlur();
+
+      filmInfo.classList.toggle("revealed", on);
+      if (on) {
+        filmTitle.textContent = current?.title ?? "";
+        filmYear.textContent  = current?.releaseDate?.slice(0, 4) ?? "";
+        btnReveal.textContent = "Hide";
+        btnReveal.classList.remove("btn-primary");
+      } else {
+        btnReveal.textContent = "Reveal";
+        btnReveal.classList.add("btn-primary");
+      }
+    }
+
+    // ─── Feedback message ─────────────────────────────────────────────────
+    function showFeedback(msg, kind /* "wrong" | "success" */) {
+      feedback.textContent = msg;
+      feedback.className   = `feedback ${kind} visible`;
+    }
+
+    function clearFeedback() {
+      feedback.className = "feedback";
+      feedback.textContent = "";
+    }
+
+    // ─── Guess logic ──────────────────────────────────────────────────────
+    function normalise(s) {
+      return s.trim().toLowerCase().replace(/^(the|a|an)\s+/, "");
+    }
+
+    function submitGuess() {
+      const raw = guessInput.value.trim();
+      if (!raw || !current || solved) return;
+
+      guessCount++;
+      updateStats();
+
+      if (normalise(raw) === normalise(current.title)) {
+        solved = true;
+        setRevealed(true);
+        showFeedback("Correct!", "success");
+        guessInput.disabled = true;
+        btnGuess.disabled   = true;
+        guessInput.value    = "";
+      } else {
+        showFeedback(`Not quite — try again`, "wrong");
+        guessInput.value = "";
+        guessInput.focus();
+      }
+    }
+
+    // ─── Keyword size (inversely proportional to movieCount) ──────────────
+    function kwFontSize(movieCount, minCount, maxCount) {
+      const range = maxCount - minCount || 1;
+      const norm  = 1 - (movieCount - minCount) / range; // 1 = most specific
+      return (0.55 + norm * 0.5).toFixed(3) + "rem";
+    }
+
+    // ─── Render keywords ──────────────────────────────────────────────────
+    function renderKeywords(kws) {
+      kwCloud.innerHTML = "";
+      if (!kws || kws.length === 0) { kwLabel.textContent = ""; return; }
+
+      kwLabel.textContent = "Hints";
+
+      const counts   = kws.map(k => k.movieCount);
+      const minCount = Math.min(...counts);
+      const maxCount = Math.max(...counts);
+      const total    = totalWeight(kws);
+
+      // Shuffle so hint order isn't predictable
+      const shuffled = [...kws].sort(() => Math.random() - 0.5);
+
+      for (const kw of shuffled) {
+        const btn = document.createElement("button");
+        btn.type      = "button";
+        btn.className = "kw-btn";
+        btn.textContent = kw.name;
+        btn.dataset.id  = String(kw.id);
+        btn.style.fontSize = kwFontSize(kw.movieCount, minCount, maxCount);
+
+        const pct = (1 / kw.movieCount / total * 100).toFixed(0);
+        btn.title = `+${pct}% reveal`;
+
+        btn.addEventListener("click", () => {
+          if (solved || revealed) return;
+          if (activeKws.has(kw.id)) {
+            activeKws.delete(kw.id);
+            btn.classList.remove("active");
+          } else {
+            activeKws.add(kw.id);
+            hintSet.add(kw.id);   // track for stat — never decremented
+            btn.classList.add("active");
+          }
+          applyBlur();
+          updateStats();
+        });
+
+        kwCloud.appendChild(btn);
+      }
+    }
+
+    // ─── Load a random movie ──────────────────────────────────────────────
+    async function loadRandom() {
+      // Reset state
+      setRevealed(false);
+      clearFeedback();
+      activeKws.clear();
+      hintSet.clear();
+      guessCount = 0;
+      solved     = false;
+      updateStats();
+      kwCloud.innerHTML = "";
+      kwLabel.textContent = "";
+      blurFill.style.width = "0%";
+      guessInput.value    = "";
+      guessInput.disabled = true;
+      btnGuess.disabled   = true;
+      btnReveal.disabled  = true;
+
+      posterImg.classList.add("loading");
+      placeholder.textContent = "Loading…";
+      placeholder.style.display = "flex";
+
+      try {
+        const res = await fetch("/v1/movies/random");
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          showFeedback(body.error ?? `HTTP ${res.status}`, "wrong");
+          placeholder.textContent = "Error loading film";
+          return;
+        }
+
+        current = await res.json();
+
+        if (!current.posterUrl) {
+          loadRandom();
+          return;
+        }
+
+        renderKeywords(current.keywords ?? []);
+
+        const img = new Image();
+        img.onload = () => {
+          posterImg.src = current.posterUrl;
+          posterImg.alt = current.title;
+          posterImg.style.filter = `blur(${BLUR_MAX}px) brightness(0.70) saturate(0.75)`;
+          placeholder.style.display = "none";
+          posterImg.classList.remove("loading");
+          btnReveal.disabled  = false;
+          guessInput.disabled = false;
+          btnGuess.disabled   = false;
+          guessInput.focus();
+        };
+        img.onerror = () => {
+          showFeedback("Poster failed to load", "wrong");
+          placeholder.textContent = "Poster unavailable";
+          posterImg.classList.remove("loading");
+        };
+        img.src = current.posterUrl;
+
+      } catch {
+        showFeedback("Could not reach the server", "wrong");
+        placeholder.textContent = "Connection error";
+        posterImg.classList.remove("loading");
+      }
+    }
+
+    // ─── Event listeners ──────────────────────────────────────────────────
+    btnNew.addEventListener("click", loadRandom);
+
+    btnReveal.addEventListener("click", () => {
+      if (solved) return;
+      setRevealed(!revealed);
+    });
+
+    btnGuess.addEventListener("click", submitGuess);
+
+    guessInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") submitGuess();
+    });
+
+    // ─── Init ─────────────────────────────────────────────────────────────
+    updateStats();
+    loadRandom();
+  </script>
+</body>
+</html>
