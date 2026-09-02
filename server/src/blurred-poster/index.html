@@ -558,9 +558,11 @@
       updateStats();
 
       if (normalise(raw) === normalise(current.title)) {
+        const perfect = guessCount === 1 && hintSet.size === 0;
         solved = true;
         setRevealed(true);
-        showFeedback("Correct!", "success");
+        showFeedback(perfect ? "Perfect — first guess, no hints!" : "Correct!", "success");
+        if (perfect) triggerFireworks();
         guessInput.disabled = true;
         btnGuess.disabled   = true;
         guessInput.value    = "";
@@ -789,6 +791,124 @@
         placeholder.textContent = "Connection error";
         posterImg.classList.remove("loading");
       }
+    }
+
+    // ─── Fireworks ────────────────────────────────────────────────────────
+    function triggerFireworks() {
+      const canvas = document.createElement("canvas");
+      Object.assign(canvas.style, {
+        position: "fixed", inset: "0", zIndex: "100",
+        pointerEvents: "none", width: "100%", height: "100%",
+      });
+      document.body.appendChild(canvas);
+
+      const ctx = canvas.getContext("2d");
+      let W, H;
+      const resize = () => { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; };
+      resize();
+      window.addEventListener("resize", resize);
+
+      // Palette: warm cinema golds, champagne, rose, sky
+      const PALETTES = [
+        ["#F2C94C", "#F2D98A", "#EAE6DE"],   // gold burst
+        ["#C43A57", "#E8839A", "#EAE6DE"],   // rose burst
+        ["#8BBFD4", "#B8D8E8", "#EAE6DE"],   // ice burst
+        ["#D4A06A", "#F2C94C", "#EAE6DE"],   // amber burst
+        ["#EAE6DE", "#F2C94C", "#C43A57"],   // mixed
+      ];
+
+      class Particle {
+        constructor(x, y, palette) {
+          this.x  = x;
+          this.y  = y;
+          this.color = palette[Math.floor(Math.random() * palette.length)];
+          const angle = Math.random() * Math.PI * 2;
+          const speed = 1.5 + Math.random() * 5.5;
+          this.vx   = Math.cos(angle) * speed;
+          this.vy   = Math.sin(angle) * speed - Math.random() * 1.5;
+          this.life = 0.9 + Math.random() * 0.1;
+          this.decay= 0.012 + Math.random() * 0.016;
+          this.r    = 1.2 + Math.random() * 2.2;
+          this.tail = Math.random() > 0.6; // some particles are sparkle-tailed
+        }
+
+        update() {
+          this.vy  += 0.09;    // gravity
+          this.vx  *= 0.974;   // air resistance
+          this.vy  *= 0.974;
+          this.x   += this.vx;
+          this.y   += this.vy;
+          this.life -= this.decay;
+        }
+
+        draw() {
+          ctx.globalAlpha = Math.max(0, this.life);
+          ctx.fillStyle   = this.color;
+          ctx.beginPath();
+          const r = this.r * (this.tail ? this.life : 1);
+          ctx.arc(this.x, this.y, Math.max(0.1, r), 0, Math.PI * 2);
+          ctx.fill();
+
+          // Bright core on larger particles
+          if (this.r > 2.5) {
+            ctx.globalAlpha = Math.max(0, this.life * 0.6);
+            ctx.fillStyle   = "#FFFFFF";
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, Math.max(0.1, r * 0.35), 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+      }
+
+      const particles = [];
+      const startTime = performance.now();
+
+      function burst(x, y) {
+        const palette = PALETTES[Math.floor(Math.random() * PALETTES.length)];
+        const count   = 90 + Math.floor(Math.random() * 50);
+        for (let i = 0; i < count; i++) particles.push(new Particle(x, y, palette));
+      }
+
+      // Schedule bursts across the viewport
+      const schedule = [
+        { ms:  80, rx: 0.50, ry: 0.32 },
+        { ms: 260, rx: 0.25, ry: 0.28 },
+        { ms: 260, rx: 0.75, ry: 0.28 },
+        { ms: 480, rx: 0.38, ry: 0.42 },
+        { ms: 480, rx: 0.62, ry: 0.38 },
+        { ms: 700, rx: 0.18, ry: 0.35 },
+        { ms: 700, rx: 0.82, ry: 0.30 },
+        { ms: 950, rx: 0.50, ry: 0.22 },
+        { ms:1150, rx: 0.30, ry: 0.25 },
+        { ms:1150, rx: 0.70, ry: 0.40 },
+        { ms:1350, rx: 0.50, ry: 0.35 },
+      ];
+
+      schedule.forEach(({ ms, rx, ry }) =>
+        setTimeout(() => burst(W * rx, H * ry), ms)
+      );
+
+      let rafId;
+      function loop() {
+        ctx.clearRect(0, 0, W, H);
+        ctx.globalAlpha = 1;
+
+        for (let i = particles.length - 1; i >= 0; i--) {
+          particles[i].update();
+          particles[i].draw();
+          if (particles[i].life <= 0) particles.splice(i, 1);
+        }
+
+        const elapsed = performance.now() - startTime;
+        if (elapsed < 3000 || particles.length > 0) {
+          rafId = requestAnimationFrame(loop);
+        } else {
+          canvas.remove();
+          window.removeEventListener("resize", resize);
+        }
+      }
+
+      rafId = requestAnimationFrame(loop);
     }
 
     // ─── Wiring ───────────────────────────────────────────────────────────
