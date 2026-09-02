@@ -37,7 +37,6 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: flex-start;
       padding: 3.5rem 1.5rem 3.5rem;
     }
 
@@ -76,10 +75,9 @@
       gap: 1.75rem;
       flex: 1;
       min-width: 0;
-      padding-top: 0.125rem; /* optical alignment with poster top */
+      padding-top: 0.125rem;
     }
 
-    /* Collapse to single column on narrow viewports */
     @media (max-width: 640px) {
       .layout    { flex-direction: column; align-items: center; }
       .right-col { width: var(--frame-w); flex: none; padding-top: 0; }
@@ -101,19 +99,17 @@
       width: 100%;
       height: 100%;
       object-fit: cover;
-      transform: scale(1.08);
-      transition:
-        filter   0.6s cubic-bezier(0.4, 0, 0.2, 1),
-        transform 0.6s cubic-bezier(0.4, 0, 0.2, 1),
-        opacity  0.25s ease;
+      transition: filter   0.55s cubic-bezier(0.4, 0, 0.2, 1),
+                  transform 0.55s cubic-bezier(0.4, 0, 0.2, 1),
+                  opacity   0.25s ease;
     }
 
+    /* Suppress ALL transitions while the image is hidden during load, so the
+       initial blur/zoom snaps to its starting value without animating. */
     .poster-img.loading {
       opacity: 0;
       transition: none !important;
     }
-
-    .poster-img.no-blur { transform: scale(1); }
 
     .poster-placeholder {
       position: absolute;
@@ -200,6 +196,35 @@
       background: var(--accent);
       transition: width 0.4s ease;
     }
+
+    /* ─── Mode toggle (segmented control) ─── */
+    .mode-toggle {
+      display: flex;
+      margin-top: 0.75rem;
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+
+    .mode-btn {
+      flex: 1;
+      padding: 0.42rem 0.5rem;
+      font-family: "DM Mono", monospace;
+      font-size: 0.52rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      background: transparent;
+      border: none;
+      border-right: 1px solid var(--border);
+      color: var(--muted);
+      cursor: pointer;
+      transition: color 0.15s, background 0.15s;
+    }
+
+    .mode-btn:last-child { border-right: none; }
+    .mode-btn:hover:not(.active) { color: var(--text); background: rgba(255,255,255,0.04); }
+    .mode-btn.active { background: var(--border); color: var(--text); cursor: default; }
+    .mode-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 
     /* ─── Guess section ─── */
     .guess-section {
@@ -397,6 +422,12 @@
       <div class="blur-track" aria-hidden="true">
         <div class="blur-fill" id="blurFill" style="width:0%"></div>
       </div>
+
+      <!-- Mode selector: persists across movies -->
+      <div class="mode-toggle" role="group" aria-label="Reveal style">
+        <button class="mode-btn active" id="modeBlur" type="button">Blur</button>
+        <button class="mode-btn"        id="modeZoom" type="button">Zoom</button>
+      </div>
     </div>
 
     <!-- ── Right column: guess + keywords ── -->
@@ -445,9 +476,8 @@
         <div class="keywords-cloud" id="kwCloud"></div>
       </div>
 
-    </div><!-- /.right-col -->
-
-  </div><!-- /.layout -->
+    </div>
+  </div>
 
   <script>
     const posterImg   = document.getElementById("posterImg");
@@ -468,8 +498,11 @@
     const lblHints    = document.getElementById("lblHints");
     const kwCloud     = document.getElementById("kwCloud");
     const kwLabel     = document.getElementById("kwLabel");
+    const btnModeBlur = document.getElementById("modeBlur");
+    const btnModeZoom = document.getElementById("modeZoom");
 
-    const BLUR_MAX = 28;
+    const BLUR_MAX = 28;  // starting blur in px
+    const ZOOM_MAX = 5;   // starting zoom scale (5× = 20% of poster visible)
 
     let current    = null;
     let revealed   = false;
@@ -477,6 +510,11 @@
     let guessCount = 0;
     let hintSet    = new Set();
     let activeKws  = new Set();
+
+    let revealMode = "blur"; // "blur" | "zoom"
+
+    // Focal point for zoom mode (percentages, 0–100), set fresh each movie
+    let focalX = 50, focalY = 50;
 
     // Autocomplete state
     let suggestions   = [];
@@ -493,35 +531,92 @@
       lblHints.textContent    = h === 1 ? "hint"   : "hints";
     }
 
-    // ─── Blur ─────────────────────────────────────────────────────────────
+    // ─── Keyword weight helpers ────────────────────────────────────────────
     function totalWeight(kws)   { return kws.reduce((s, k) => s + 1 / k.movieCount, 0); }
     function clickedWeight(kws) { return kws.filter(k => activeKws.has(k.id)).reduce((s, k) => s + 1 / k.movieCount, 0); }
 
+    // ─── Blur mode ────────────────────────────────────────────────────────
     function computeBlurPx(kws) {
       if (!kws || kws.length === 0) return BLUR_MAX;
-      return BLUR_MAX * Math.max(0, 1 - clickedWeight(kws) / totalWeight(kws));
+      const fraction = Math.min(1, clickedWeight(kws) / totalWeight(kws));
+      return BLUR_MAX * (1 - fraction);
     }
 
     function applyBlur() {
       const kws = current?.keywords ?? [];
+      // Make sure zoom transform is neutral when blur mode is active
+      posterImg.style.transform       = "scale(1)";
+      posterImg.style.transformOrigin = "50% 50%";
+
       if (revealed) {
-        posterImg.style.filter = "blur(0px) brightness(1) saturate(1)";
-        posterImg.classList.add("no-blur");
+        posterImg.style.filter = "none";
+        blurFill.style.width   = "100%";
+        return;
+      }
+
+      const px       = computeBlurPx(kws);
+      const fraction = 1 - px / BLUR_MAX;
+      posterImg.style.filter = px < 0.5
+        ? "none"
+        : `blur(${px.toFixed(2)}px) brightness(0.70) saturate(0.75)`;
+      blurFill.style.width = `${(fraction * 100).toFixed(1)}%`;
+    }
+
+    // ─── Zoom mode ────────────────────────────────────────────────────────
+    function newFocalPoint() {
+      focalX = 20 + Math.random() * 60; // 20–80% safe zone
+      focalY = 20 + Math.random() * 60;
+    }
+
+    function computeZoom(kws) {
+      if (!kws || kws.length === 0) return ZOOM_MAX;
+      const fraction = Math.min(1, clickedWeight(kws) / totalWeight(kws));
+      return ZOOM_MAX - fraction * (ZOOM_MAX - 1);
+    }
+
+    function applyZoom() {
+      const kws = current?.keywords ?? [];
+      // Make sure blur filter is clear when zoom mode is active
+      posterImg.style.filter = "none";
+
+      if (revealed) {
+        posterImg.style.transformOrigin = "50% 50%";
+        posterImg.style.transform       = "scale(1)";
         blurFill.style.width = "100%";
         return;
       }
-      const px = computeBlurPx(kws);
-      const f  = 1 - px / BLUR_MAX;
-      posterImg.style.filter =
-        `blur(${px.toFixed(1)}px) brightness(${(0.7 + f * 0.3).toFixed(2)}) saturate(${(0.75 + f * 0.25).toFixed(2)})`;
-      posterImg.classList.toggle("no-blur", px < 0.5);
-      blurFill.style.width = `${(f * 100).toFixed(1)}%`;
+
+      const zoom     = computeZoom(kws);
+      const fraction = 1 - (zoom - 1) / (ZOOM_MAX - 1);
+      posterImg.style.transformOrigin = `${focalX.toFixed(1)}% ${focalY.toFixed(1)}%`;
+      posterImg.style.transform       = `scale(${zoom.toFixed(4)})`;
+      blurFill.style.width = `${(fraction * 100).toFixed(1)}%`;
     }
+
+    // ─── Dispatcher ───────────────────────────────────────────────────────
+    function applyReveal() {
+      if (revealMode === "zoom") {
+        applyZoom();
+      } else {
+        applyBlur();
+      }
+    }
+
+    // ─── Mode toggle ──────────────────────────────────────────────────────
+    function setMode(mode) {
+      revealMode = mode;
+      btnModeBlur.classList.toggle("active", mode === "blur");
+      btnModeZoom.classList.toggle("active", mode === "zoom");
+      applyReveal();
+    }
+
+    btnModeBlur.addEventListener("click", () => setMode("blur"));
+    btnModeZoom.addEventListener("click", () => setMode("zoom"));
 
     // ─── Reveal ───────────────────────────────────────────────────────────
     function setRevealed(on) {
       revealed = on;
-      applyBlur();
+      applyReveal();
       filmInfo.classList.toggle("revealed", on);
       if (on) {
         filmTitle.textContent = current?.title ?? "";
@@ -719,7 +814,7 @@
             hintSet.add(kw.id);
             btn.classList.add("active");
           }
-          applyBlur();
+          applyReveal();
           updateStats();
         });
 
@@ -747,7 +842,7 @@
       btnReveal.disabled   = true;
 
       posterImg.classList.add("loading");
-      placeholder.textContent = "Loading…";
+      placeholder.textContent   = "Loading…";
       placeholder.style.display = "flex";
 
       try {
@@ -763,10 +858,21 @@
         if (!current.posterUrl) { loadRandom(); return; }
 
         renderKeywords(current.keywords ?? []);
+        newFocalPoint(); // always pick a focal point; used only in zoom mode
 
         const img = new Image();
         img.onload = () => {
-          posterImg.style.filter = `blur(${BLUR_MAX}px) brightness(0.70) saturate(0.75)`;
+          // Commit the starting visual state while loading class is active
+          // (transition: none !important) — no animation from previous movie's state.
+          if (revealMode === "zoom") {
+            posterImg.style.filter          = "none";
+            posterImg.style.transformOrigin = `${focalX.toFixed(1)}% ${focalY.toFixed(1)}%`;
+            posterImg.style.transform       = `scale(${ZOOM_MAX})`;
+          } else {
+            posterImg.style.filter          = `blur(${BLUR_MAX}px) brightness(0.70) saturate(0.75)`;
+            posterImg.style.transform       = "scale(1)";
+            posterImg.style.transformOrigin = "50% 50%";
+          }
           posterImg.src = current.posterUrl;
           posterImg.alt = current.title;
 
@@ -808,36 +914,31 @@
       resize();
       window.addEventListener("resize", resize);
 
-      // Palette: warm cinema golds, champagne, rose, sky
       const PALETTES = [
-        ["#F2C94C", "#F2D98A", "#EAE6DE"],   // gold burst
-        ["#C43A57", "#E8839A", "#EAE6DE"],   // rose burst
-        ["#8BBFD4", "#B8D8E8", "#EAE6DE"],   // ice burst
-        ["#D4A06A", "#F2C94C", "#EAE6DE"],   // amber burst
-        ["#EAE6DE", "#F2C94C", "#C43A57"],   // mixed
+        ["#F2C94C", "#F2D98A", "#EAE6DE"],
+        ["#C43A57", "#E8839A", "#EAE6DE"],
+        ["#8BBFD4", "#B8D8E8", "#EAE6DE"],
+        ["#D4A06A", "#F2C94C", "#EAE6DE"],
+        ["#EAE6DE", "#F2C94C", "#C43A57"],
       ];
 
       class Particle {
         constructor(x, y, palette) {
-          this.x  = x;
-          this.y  = y;
+          this.x     = x; this.y = y;
           this.color = palette[Math.floor(Math.random() * palette.length)];
           const angle = Math.random() * Math.PI * 2;
           const speed = 1.5 + Math.random() * 5.5;
-          this.vx   = Math.cos(angle) * speed;
-          this.vy   = Math.sin(angle) * speed - Math.random() * 1.5;
-          this.life = 0.9 + Math.random() * 0.1;
-          this.decay= 0.012 + Math.random() * 0.016;
-          this.r    = 1.2 + Math.random() * 2.2;
-          this.tail = Math.random() > 0.6; // some particles are sparkle-tailed
+          this.vx    = Math.cos(angle) * speed;
+          this.vy    = Math.sin(angle) * speed - Math.random() * 1.5;
+          this.life  = 0.9 + Math.random() * 0.1;
+          this.decay = 0.012 + Math.random() * 0.016;
+          this.r     = 1.2 + Math.random() * 2.2;
+          this.tail  = Math.random() > 0.6;
         }
 
         update() {
-          this.vy  += 0.09;    // gravity
-          this.vx  *= 0.974;   // air resistance
-          this.vy  *= 0.974;
-          this.x   += this.vx;
-          this.y   += this.vy;
+          this.vy += 0.09; this.vx *= 0.974; this.vy *= 0.974;
+          this.x += this.vx; this.y += this.vy;
           this.life -= this.decay;
         }
 
@@ -848,8 +949,6 @@
           const r = this.r * (this.tail ? this.life : 1);
           ctx.arc(this.x, this.y, Math.max(0.1, r), 0, Math.PI * 2);
           ctx.fill();
-
-          // Bright core on larger particles
           if (this.r > 2.5) {
             ctx.globalAlpha = Math.max(0, this.life * 0.6);
             ctx.fillStyle   = "#FFFFFF";
@@ -869,36 +968,26 @@
         for (let i = 0; i < count; i++) particles.push(new Particle(x, y, palette));
       }
 
-      // Schedule bursts across the viewport
       const schedule = [
-        { ms:  80, rx: 0.50, ry: 0.32 },
-        { ms: 260, rx: 0.25, ry: 0.28 },
-        { ms: 260, rx: 0.75, ry: 0.28 },
-        { ms: 480, rx: 0.38, ry: 0.42 },
-        { ms: 480, rx: 0.62, ry: 0.38 },
-        { ms: 700, rx: 0.18, ry: 0.35 },
-        { ms: 700, rx: 0.82, ry: 0.30 },
-        { ms: 950, rx: 0.50, ry: 0.22 },
-        { ms:1150, rx: 0.30, ry: 0.25 },
-        { ms:1150, rx: 0.70, ry: 0.40 },
+        { ms:  80, rx: 0.50, ry: 0.32 }, { ms: 260, rx: 0.25, ry: 0.28 },
+        { ms: 260, rx: 0.75, ry: 0.28 }, { ms: 480, rx: 0.38, ry: 0.42 },
+        { ms: 480, rx: 0.62, ry: 0.38 }, { ms: 700, rx: 0.18, ry: 0.35 },
+        { ms: 700, rx: 0.82, ry: 0.30 }, { ms: 950, rx: 0.50, ry: 0.22 },
+        { ms:1150, rx: 0.30, ry: 0.25 }, { ms:1150, rx: 0.70, ry: 0.40 },
         { ms:1350, rx: 0.50, ry: 0.35 },
       ];
 
-      schedule.forEach(({ ms, rx, ry }) =>
-        setTimeout(() => burst(W * rx, H * ry), ms)
-      );
+      schedule.forEach(({ ms, rx, ry }) => setTimeout(() => burst(W * rx, H * ry), ms));
 
       let rafId;
       function loop() {
         ctx.clearRect(0, 0, W, H);
         ctx.globalAlpha = 1;
-
         for (let i = particles.length - 1; i >= 0; i--) {
           particles[i].update();
           particles[i].draw();
           if (particles[i].life <= 0) particles.splice(i, 1);
         }
-
         const elapsed = performance.now() - startTime;
         if (elapsed < 3000 || particles.length > 0) {
           rafId = requestAnimationFrame(loop);
