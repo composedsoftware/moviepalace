@@ -779,30 +779,32 @@
     });
 
     // ─── Keywords ─────────────────────────────────────────────────────────
-    function kwFontSize(movieCount, minCount, maxCount) {
-      const norm = 1 - (movieCount - minCount) / (maxCount - minCount || 1);
-      return (0.55 + norm * 0.5).toFixed(3) + "rem";
-    }
-
     function renderKeywords(kws) {
       kwCloud.innerHTML = "";
       if (!kws || kws.length === 0) { kwLabel.textContent = ""; return; }
       kwLabel.textContent = "Hints";
 
-      const counts   = kws.map(k => k.movieCount);
-      const minCount = Math.min(...counts);
-      const maxCount = Math.max(...counts);
-      const total    = totalWeight(kws);
-      const shuffled = [...kws].sort(() => Math.random() - 0.5);
+      const total  = totalWeight(kws);
+      // Each keyword's share of the total reveal as a fraction 0–1
+      const pcts   = kws.map(k => (1 / k.movieCount) / total);
+      const minPct = Math.min(...pcts);
+      const maxPct = Math.max(...pcts);
+      const range  = maxPct - minPct || 1;
 
-      for (const kw of shuffled) {
+      const shuffled = [...kws].map((k, i) => ({ kw: k, pct: pcts[i] }))
+                               .sort(() => Math.random() - 0.5);
+
+      for (const { kw, pct } of shuffled) {
+        const norm     = (pct - minPct) / range;
+        const fontSize = (0.55 + norm * 0.5).toFixed(3) + "rem";
+
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className = "kw-btn";
         btn.textContent = kw.name;
         btn.dataset.id  = String(kw.id);
-        btn.style.fontSize = kwFontSize(kw.movieCount, minCount, maxCount);
-        btn.title = `+${(1 / kw.movieCount / total * 100).toFixed(0)}% reveal`;
+        btn.style.fontSize = fontSize;
+        btn.title = `+${(pct * 100).toFixed(0)}% reveal`;
 
         btn.addEventListener("click", () => {
           if (solved || revealed) return;
@@ -821,6 +823,7 @@
         kwCloud.appendChild(btn);
       }
     }
+
 
     // ─── Load ─────────────────────────────────────────────────────────────
     async function loadRandom() {

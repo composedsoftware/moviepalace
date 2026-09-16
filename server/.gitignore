@@ -3,6 +3,9 @@ node_modules
 # Environment variables
 .env
 
+# Production release packages
+/release
+
 # Prisma generated client
 /src/generated/prisma
 

@@ -5,7 +5,8 @@
   "main": "dist/moviepalace-server.js",
   "scripts": {
     "clean": "rm -rf dist",
-    "build": "npm run clean && tsc",
+    "copy-static": "node -e \"require('fs').cpSync('src/blurred-poster', 'dist/blurred-poster', {recursive:true})\"",
+    "build": "npm run clean && tsc && npm run copy-static",
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
@@ -23,7 +24,8 @@
     "db:export-questions": "ts-node src/scripts/export-questions.ts",
     "db:import-questions": "ts-node src/scripts/import-questions.ts",
     "cleanWin": "if exist dist rmdir /s /q dist",
-    "buildWin": "npm run cleanWin && tsc",
+    "buildWin": "npm run cleanWin && tsc && npm run copy-static",
+    "pack": "powershell -ExecutionPolicy Bypass -File pack-prod.ps1",
     "start": "node dist/moviepalace-server.js",
     "dev": "ts-node src/moviepalace-server.ts",
     "dev:web": "ts-node src/webServer.ts",
@@ -40,13 +42,13 @@
     "@prisma/client": "^7.8.0",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
-    "node-fetch": "^2.7.0"
+    "node-fetch": "^2.7.0",
+    "prisma": "^7.8.0"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
     "@types/node": "^25.9.1",
     "@types/node-fetch": "^2.6.13",
-    "prisma": "^7.8.0",
     "ts-node": "^10.9.2",
     "typescript": "^6.0.3"
   }
