@@ -11,12 +11,15 @@
  * Run: npm run db:seed-cast-links
  */
 
-import dotenv from "dotenv";
-dotenv.config();
+import "dotenv/config";
 
 import prisma from "../lib/db";
 import { tmdbGet } from "../lib/tmdb";
-import { TmdbMovieSearchResponse, TmdbMovieDetails } from "../moviepalace-types";
+import {
+  TmdbMovieSearchResponse,
+  TmdbMovieDetails,
+  CastLinksPossibleActor,
+} from "../moviepalace-types";
 
 // ─── Puzzle data from spreadsheet ────────────────────────────────────────────
 
@@ -254,6 +257,10 @@ const PUZZLES: PuzzleEntry[] = [
 
 // ─── TMDB lookup ─────────────────────────────────────────────────────────────
 
+interface TmdbPersonSearchResponse {
+  results: Array<{ id: number; name: string }>;
+}
+
 // Cache keyed by "title|year" so duplicate lookups only fetch once
 const movieCache = new Map<string, TmdbMovieDetails>();
 
@@ -279,6 +286,20 @@ async function fetchMovie(film: FilmEntry): Promise<TmdbMovieDetails> {
   const details = await tmdbGet<TmdbMovieDetails>(`/3/movie/${movieId}`);
   movieCache.set(cacheKey, details);
   return details;
+}
+
+const actorCache = new Map<string, CastLinksPossibleActor>();
+
+async function fetchActor(name: string): Promise<CastLinksPossibleActor> {
+  if (actorCache.has(name)) return actorCache.get(name)!;
+
+  const search = await tmdbGet<TmdbPersonSearchResponse>("/3/search/person", { query: name });
+  if (!search.results.length) {
+    throw new Error(`No TMDB person result for "${name}"`);
+  }
+  const actor: CastLinksPossibleActor = { id: search.results[0].id, name: search.results[0].name };
+  actorCache.set(name, actor);
+  return actor;
 }
 
 // ─── Main ────────────────────────────────────────────────────────────────────
@@ -327,15 +348,33 @@ async function main() {
       });
     }
 
-    // Build structured payload
+    // Resolve intended actors to TMDB person IDs
+    const resolvedLinks: Array<{
+      from_pos: number;
+      to_pos: number;
+      possible_actors: CastLinksPossibleActor[];
+    }> = [];
+    for (const link of puzzle.links) {
+      try {
+        const actor = await fetchActor(link.intended_actor);
+        resolvedLinks.push({ from_pos: link.from_pos, to_pos: link.to_pos, possible_actors: [actor] });
+        console.log(`  ✓ actor "${actor.name}" (TMDB ${actor.id})`);
+      } catch (err) {
+        console.error(`  ✗ actor "${link.intended_actor}": ${err instanceof Error ? err.message : err}`);
+        resolvedLinks.push({ from_pos: link.from_pos, to_pos: link.to_pos, possible_actors: [] });
+      }
+    }
+
+    // Build structured payload matching CastLinksPayload
     const payload = {
+      type: "cast_links" as const,
       puzzle_number: puzzle.puzzle,
       chain: resolvedFilms.map(({ film, tmdb }, i) => ({
         pos: i + 1,
         film: film.title,
         tmdb_id: tmdb?.id ?? null,
       })),
-      links: puzzle.links,
+      links: resolvedLinks,
     };
 
     // Insert Question
