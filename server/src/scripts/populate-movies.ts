@@ -13,6 +13,7 @@ dotenv.config();
 
 import prisma from "../lib/db";
 import { tmdbGet } from "../lib/tmdb";
+import { genreIdsJson, upsertGenres } from "../lib/genres";
 import {
   TmdbMovieSearchResponse,
   TmdbMovieDetails,
@@ -82,6 +83,7 @@ async function main() {
       try {
         const movie = await fetchMovieFromTmdb(ref);
 
+        await upsertGenres(movie.genres);
         await prisma.movie.upsert({
           where: { id: movie.id },
           update: {},
@@ -91,6 +93,7 @@ async function main() {
             releaseDate: movie.release_date,
             posterPath: movie.poster_path,
             overview: movie.overview,
+            genres: genreIdsJson(movie.genres),
           },
         });
 

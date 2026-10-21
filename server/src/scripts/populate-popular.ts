@@ -15,6 +15,7 @@ dotenv.config();
 
 import prisma from "../lib/db";
 import { tmdbGet } from "../lib/tmdb";
+import { genreIdsJson, upsertGenres } from "../lib/genres";
 import {
   TmdbMovieDetails,
   TmdbKeywordsResponse,
@@ -158,7 +159,8 @@ async function main() {
         .slice(0, TOP_CAST_LIMIT);
       const topCastIds = topCast.map((a) => a.id);
 
-      // Upsert Movie
+      // Upsert Genres + Movie
+      await upsertGenres(details.genres);
       await prisma.movie.upsert({
         where: { id: details.id },
         create: {
@@ -169,6 +171,7 @@ async function main() {
           overview: details.overview || null,
           keywords: JSON.stringify(keywords),
           topCast: JSON.stringify(topCastIds),
+          genres: genreIdsJson(details.genres),
         },
         update: {
           title: details.title,
@@ -177,6 +180,7 @@ async function main() {
           overview: details.overview || null,
           keywords: JSON.stringify(keywords),
           topCast: JSON.stringify(topCastIds),
+          genres: genreIdsJson(details.genres),
           fetchedAt: new Date(),
         },
       });

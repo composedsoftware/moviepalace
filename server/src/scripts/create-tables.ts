@@ -2,7 +2,8 @@
  * create-tables.ts
  *
  * Creates every table the app uses, empty. Safe to re-run (IF NOT EXISTS);
- * existing tables and their data are left untouched.
+ * existing tables and their data are left untouched (an existing Movie table
+ * does not gain new columns; run db:add-genres to upgrade an older database).
  * Mirrors prisma/schema.prisma (not prisma/migrations, which is out of date).
  *
  * Run: npm run db:create-tables
@@ -26,7 +27,12 @@ const STATEMENTS = [
     "overview"    TEXT,
     "keywords"    TEXT,
     "topCast"     TEXT,
+    "genres"      TEXT,
     "fetchedAt"   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+  )`,
+  `CREATE TABLE IF NOT EXISTS "Genre" (
+    "id"   INTEGER NOT NULL PRIMARY KEY,
+    "name" TEXT    NOT NULL UNIQUE
   )`,
   `CREATE TABLE IF NOT EXISTS "Keyword" (
     "id"         INTEGER NOT NULL PRIMARY KEY,

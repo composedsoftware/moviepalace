@@ -16,6 +16,7 @@ dotenv.config();
 
 import prisma from "../lib/db";
 import { tmdbGet } from "../lib/tmdb";
+import { genreIdsJson, upsertGenres } from "../lib/genres";
 import { TmdbMovieSearchResponse, TmdbMovieDetails } from "../moviepalace-types";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -113,6 +114,7 @@ async function main() {
         continue;
       }
 
+      await upsertGenres(movie.genres);
       const upsertResult = await prisma.movie.upsert({
         where: { id: movie.id },
         update: {},
@@ -122,6 +124,7 @@ async function main() {
           releaseDate: movie.release_date,
           posterPath: movie.poster_path,
           overview: movie.overview,
+          genres: genreIdsJson(movie.genres),
         },
       });
       if (upsertResult.fetchedAt > new Date(Date.now() - 2000)) newMovies++;

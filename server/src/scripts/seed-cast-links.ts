@@ -15,6 +15,7 @@ import "dotenv/config";
 
 import prisma from "../lib/db";
 import { tmdbGet } from "../lib/tmdb";
+import { genreIdsJson, upsertGenres } from "../lib/genres";
 import {
   TmdbMovieSearchResponse,
   TmdbMovieDetails,
@@ -335,6 +336,7 @@ async function main() {
     // Upsert Movie records for any successfully resolved films
     for (const { tmdb } of resolvedFilms) {
       if (!tmdb) continue;
+      await upsertGenres(tmdb.genres);
       await prisma.movie.upsert({
         where: { id: tmdb.id },
         update: {},
@@ -344,6 +346,7 @@ async function main() {
           releaseDate: tmdb.release_date,
           posterPath: tmdb.poster_path,
           overview: tmdb.overview,
+          genres: genreIdsJson(tmdb.genres),
         },
       });
     }

@@ -20,6 +20,7 @@ dotenv.config();
 
 import prisma from "../lib/db";
 import { tmdbGet } from "../lib/tmdb";
+import { genreIdsJson, upsertGenres } from "../lib/genres";
 import {
   TmdbMovieSearchResponse,
   TmdbMovieDetails,
@@ -88,7 +89,8 @@ async function main() {
     .slice(0, TOP_CAST_LIMIT);
   const topCastIds = topCast.map((a) => a.id);
 
-  // 3. Upsert Movie
+  // 3. Upsert Genres + Movie
+  await upsertGenres(details.genres);
   await prisma.movie.upsert({
     where: { id: details.id },
     create: {
@@ -99,6 +101,7 @@ async function main() {
       overview: details.overview || null,
       keywords: JSON.stringify(keywords),
       topCast: JSON.stringify(topCastIds),
+      genres: genreIdsJson(details.genres),
     },
     update: {
       title: details.title,
@@ -107,11 +110,13 @@ async function main() {
       overview: details.overview || null,
       keywords: JSON.stringify(keywords),
       topCast: JSON.stringify(topCastIds),
+      genres: genreIdsJson(details.genres),
       fetchedAt: new Date(),
     },
   });
+  const genreNames = details.genres.map((g) => g.name).join(", ") || "none";
   console.log(`\n  Movie upserted: "${details.title}" (ID ${details.id})`);
-  console.log(`  ${keywords.length} keyword(s), ${topCast.length} top-cast actor(s)`);
+  console.log(`  ${keywords.length} keyword(s), ${topCast.length} top-cast actor(s), genres: ${genreNames}`);
 
   // 4. Upsert Actors
   for (const member of topCast) {

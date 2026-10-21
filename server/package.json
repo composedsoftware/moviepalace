@@ -23,6 +23,7 @@
     "db:populate-popular": "ts-node src/scripts/populate-popular.ts",
     "db:export-questions": "ts-node src/scripts/export-questions.ts",
     "db:import-questions": "ts-node src/scripts/import-questions.ts",
+    "db:add-genres": "ts-node src/scripts/add-genres.ts",
     "db:create-tables": "ts-node src/scripts/create-tables.ts",
     "db:init": "npm run db:create-tables && npm run db:seed-cast-links && npm run db:populate-popular && npm run db:sync-all",
     "cleanWin": "if exist dist rmdir /s /q dist",
