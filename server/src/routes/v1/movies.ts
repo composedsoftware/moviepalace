@@ -18,6 +18,15 @@ const router = Router();
 
 const TMDB_API_VERSION = 3;
 
+/** Parse Movie.genres (JSON array of genre IDs) into a number[]; malformed or missing -> []. */
+function parseGenreIds(raw: string | null): number[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    return Array.isArray(parsed) ? parsed.filter((n): n is number => typeof n === "number") : [];
+  } catch { return []; }
+}
+
 /**
  * GET /v1/movies/search
  * Wraps: GET /3/search/movie
@@ -226,26 +235,77 @@ router.get(
 );
 
 /**
+ * GET /v1/movies/genres
+ *
+ * Lists the genres that at least one poster-bearing movie in the local database
+ * belongs to, with how many such movies each has. Feeds the genre filter on the
+ * blurred-poster page.
+ *
+ * Returns: { genres: [{ id, name, count }] } sorted by name
+ */
+router.get(
+  "/genres",
+  async (_req: Request, res: Response) => {
+    const movies = await prisma.movie.findMany({
+      where: { posterPath: { not: null }, genres: { not: null } },
+      select: { genres: true },
+    });
+
+    const counts = new Map<number, number>();
+    for (const m of movies) {
+      for (const id of parseGenreIds(m.genres)) {
+        counts.set(id, (counts.get(id) ?? 0) + 1);
+      }
+    }
+
+    const rows = await prisma.genre.findMany({
+      where: { id: { in: [...counts.keys()] } },
+      orderBy: { name: "asc" },
+    });
+
+    res.json({ genres: rows.map((g) => ({ id: g.id, name: g.name, count: counts.get(g.id) ?? 0 })) });
+  }
+);
+
+/**
  * GET /v1/movies/random
  *
  * Returns a random movie from the local database that has a poster image.
  * Intended for the blurred-poster feature.
  *
- * Returns: { id, title, releaseDate, posterUrl }
+ * Query params:
+ *   genres (optional) - comma-separated genre IDs; a movie matches if it has ANY of them
+ *
+ * Returns: { id, title, releaseDate, posterUrl, keywords, matchCount }
+ *   matchCount - how many movies satisfied the filter
  */
 router.get(
   "/random",
   async (
-    _req: Request,
+    req: Request<{}, unknown, {}, { genres?: string }>,
     res: Response
   ) => {
-    const movies = await prisma.movie.findMany({
+    const wantedGenres = new Set(
+      String(req.query.genres ?? "")
+        .split(",")
+        .map((s) => parseInt(s, 10))
+        .filter((n) => Number.isInteger(n))
+    );
+
+    const all = await prisma.movie.findMany({
       where: { posterPath: { not: null } },
-      select: { id: true, title: true, releaseDate: true, posterPath: true, keywords: true },
+      select: { id: true, title: true, releaseDate: true, posterPath: true, keywords: true, genres: true },
     });
 
+    const movies = wantedGenres.size
+      ? all.filter((m) => parseGenreIds(m.genres).some((id) => wantedGenres.has(id)))
+      : all;
+
     if (!movies.length) {
-      res.status(404).json({ error: "No movies with poster images found" } satisfies ErrorResponse);
+      const error = wantedGenres.size
+        ? "No movies match the selected genres"
+        : "No movies with poster images found";
+      res.status(404).json({ error } satisfies ErrorResponse);
       return;
     }
 
@@ -276,6 +336,7 @@ router.get(
       releaseDate: pick.releaseDate ?? null,
       posterUrl: pick.posterPath ? `https://image.tmdb.org/t/p/w500${pick.posterPath}` : null,
       keywords,
+      matchCount: movies.length,
     });
   }
 );

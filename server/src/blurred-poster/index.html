@@ -391,6 +391,68 @@
     .kw-btn:focus-visible { box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px var(--accent); }
     .kw-btn.active { background: var(--kw-active-bg); border-color: var(--kw-active-border); color: var(--text); }
 
+    /* ─── Genre filter ─── */
+    .genre-section {
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+    }
+
+    .genre-section[hidden] { display: none; }
+
+    .genre-meta {
+      display: flex;
+      align-items: baseline;
+      gap: 0.85rem;
+      font-size: 0.55rem;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .genre-clear {
+      font: inherit;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    .genre-clear[hidden] { display: none; }
+    .genre-clear:hover, .genre-clear:focus-visible { color: var(--text); outline: none; }
+
+    .genre-cloud {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+
+    .genre-chip {
+      font-family: "DM Mono", monospace;
+      font-size: 0.56rem;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 0.4rem 0.65rem;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+    }
+
+    .genre-chip:hover, .genre-chip:focus-visible { color: var(--text); border-color: var(--muted); outline: none; }
+    .genre-chip:focus-visible { box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px var(--accent); }
+    .genre-chip[aria-pressed="true"] {
+      background: var(--kw-active-bg);
+      border-color: var(--kw-active-border);
+      color: var(--text);
+    }
+
     @media (prefers-reduced-motion: reduce) {
       .poster-img, .film-info, .blur-fill, .feedback { transition: none; }
     }
@@ -476,6 +538,17 @@
         <div class="keywords-cloud" id="kwCloud"></div>
       </div>
 
+      <section class="genre-section" id="genreSection" aria-label="Filter by genre" hidden>
+        <div class="section-header">
+          <span class="section-label">Genres</span>
+          <span class="genre-meta">
+            <span id="genreMatch" aria-live="polite"></span>
+            <button class="genre-clear" id="genreClear" type="button" hidden>Clear</button>
+          </span>
+        </div>
+        <div class="genre-cloud" id="genreCloud" role="group" aria-label="Genres"></div>
+      </section>
+
     </div>
   </div>
 
@@ -500,6 +573,10 @@
     const kwLabel     = document.getElementById("kwLabel");
     const btnModeBlur = document.getElementById("modeBlur");
     const btnModeZoom = document.getElementById("modeZoom");
+    const genreSection = document.getElementById("genreSection");
+    const genreCloud   = document.getElementById("genreCloud");
+    const genreMatch   = document.getElementById("genreMatch");
+    const genreClear   = document.getElementById("genreClear");
 
     const BLUR_MAX = 28;  // starting blur in px
     const ZOOM_MAX = 5;   // starting zoom scale (5× = 20% of poster visible)
@@ -515,6 +592,12 @@
 
     // Focal point for zoom mode (percentages, 0–100), set fresh each movie
     let focalX = 50, focalY = 50;
+
+    // Genre filter state (IDs of selected genres; empty = no filter)
+    const GENRE_STORE = "moviepalace.blurredPoster.genres";
+    let selectedGenres = new Set();
+    let genreTimer     = null;
+    let loadSeq        = 0; // guards against out-of-order responses when loads overlap
 
     // Autocomplete state
     let suggestions   = [];
@@ -825,8 +908,71 @@
     }
 
 
+    // ─── Genre filter ─────────────────────────────────────────────────────
+    function readSavedGenres() {
+      try { return JSON.parse(localStorage.getItem(GENRE_STORE) ?? "[]"); } catch { return []; }
+    }
+
+    function saveGenres() {
+      try { localStorage.setItem(GENRE_STORE, JSON.stringify([...selectedGenres])); } catch { /* storage unavailable */ }
+    }
+
+    function syncGenreUi() {
+      genreClear.hidden = selectedGenres.size === 0;
+      for (const chip of genreCloud.children) {
+        chip.setAttribute("aria-pressed", String(selectedGenres.has(Number(chip.dataset.id))));
+      }
+    }
+
+    // Selecting genres swaps in a fresh film; debounced so several quick clicks make one request.
+    function onGenreChange() {
+      syncGenreUi();
+      saveGenres();
+      clearTimeout(genreTimer);
+      genreTimer = setTimeout(loadRandom, 350);
+    }
+
+    function renderGenres(genres) {
+      genreCloud.innerHTML = "";
+      for (const g of genres) {
+        const chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = "genre-chip";
+        chip.textContent = g.name;
+        chip.dataset.id = String(g.id);
+        chip.title = `${g.count} ${g.count === 1 ? "film" : "films"}`;
+        chip.addEventListener("click", () => {
+          if (selectedGenres.has(g.id)) selectedGenres.delete(g.id);
+          else selectedGenres.add(g.id);
+          onGenreChange();
+        });
+        genreCloud.appendChild(chip);
+      }
+      genreSection.hidden = false;
+      syncGenreUi();
+    }
+
+    genreClear.addEventListener("click", () => {
+      selectedGenres.clear();
+      onGenreChange();
+    });
+
+    async function loadGenres() {
+      try {
+        const res = await fetch("/v1/movies/genres");
+        if (!res.ok) return;
+        const { genres } = await res.json();
+        if (!genres.length) return;
+        const known = new Set(genres.map(g => g.id));
+        selectedGenres = new Set(readSavedGenres().filter(id => known.has(id)));
+        renderGenres(genres);
+      } catch { /* filter stays hidden; the game still works unfiltered */ }
+    }
+
     // ─── Load ─────────────────────────────────────────────────────────────
     async function loadRandom() {
+      const seq = ++loadSeq;
+      clearTimeout(genreTimer);
       setRevealed(false);
       clearFeedback();
       closeDrop();
@@ -849,22 +995,29 @@
       placeholder.style.display = "flex";
 
       try {
-        const res = await fetch("/v1/movies/random");
+        const query = selectedGenres.size ? `?genres=${[...selectedGenres].join(",")}` : "";
+        const res = await fetch(`/v1/movies/random${query}`);
+        if (seq !== loadSeq) return;
         if (!res.ok) {
           const body = await res.json().catch(() => ({}));
           showFeedback(body.error ?? `HTTP ${res.status}`, "wrong");
-          placeholder.textContent = "Error loading film";
+          placeholder.textContent = res.status === 404 ? "No matching films" : "Error loading film";
+          if (res.status === 404) genreMatch.textContent = "0 films";
           return;
         }
 
-        current = await res.json();
+        const next = await res.json();
+        if (seq !== loadSeq) return;
+        current = next;
         if (!current.posterUrl) { loadRandom(); return; }
 
+        genreMatch.textContent = `${current.matchCount} ${current.matchCount === 1 ? "film" : "films"}`;
         renderKeywords(current.keywords ?? []);
         newFocalPoint(); // always pick a focal point; used only in zoom mode
 
         const img = new Image();
         img.onload = () => {
+          if (seq !== loadSeq) return;
           // Commit the starting visual state while loading class is active
           // (transition: none !important) — no animation from previous movie's state.
           if (revealMode === "zoom") {
@@ -885,10 +1038,12 @@
             btnReveal.disabled  = false;
             guessInput.disabled = false;
             btnGuess.disabled   = false;
-            guessInput.focus();
+            // Don't pull focus off a genre chip the user just clicked
+            if (!genreCloud.contains(document.activeElement)) guessInput.focus();
           });
         };
         img.onerror = () => {
+          if (seq !== loadSeq) return;
           showFeedback("Poster failed to load", "wrong");
           placeholder.textContent = "Poster unavailable";
           posterImg.classList.remove("loading");
@@ -1009,7 +1164,8 @@
     btnReveal.addEventListener("click", () => { if (!solved) setRevealed(!revealed); });
 
     updateStats();
-    loadRandom();
+    // Restore the saved genre filter before the first film is requested
+    loadGenres().then(loadRandom);
   </script>
 </body>
 </html>
