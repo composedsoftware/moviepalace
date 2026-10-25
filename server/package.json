@@ -5,7 +5,7 @@
   "main": "dist/moviepalace-server.js",
   "scripts": {
     "clean": "rm -rf dist",
-    "copy-static": "node -e \"require('fs').cpSync('src/blurred-poster', 'dist/blurred-poster', {recursive:true})\"",
+    "copy-static": "node -e \"for (const d of ['blurred-poster', 'puzzle-generator']) require('fs').cpSync('src/' + d, 'dist/' + d, {recursive:true})\"",
     "build": "npm run clean && tsc && npm run copy-static",
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",

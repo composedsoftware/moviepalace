@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Connections</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=DM+Mono:wght@400;500&display=swap">
+  <style>
+    /* ─── Tokens (shared with blurred-poster) ─── */
+    :root {
+      --bg:               #0C0C0E;
+      --surface:          #161618;
+      --border:           #2C2C30;
+      --text:             #EAE6DE;
+      --muted:            #7A7680;
+      --accent:           #C43A57;
+      --accent-dim:       #8C2A3E;
+      --success:          #3D8C6E;
+      --wrong-bg:         rgba(196, 58, 87, 0.10);
+      --kw-active-bg:     rgba(196, 58, 87, 0.14);
+      --kw-active-border: rgba(196, 58, 87, 0.5);
+      --side-w:           min(260px, 100%);
+      --thumb-w:          42px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100dvh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "DM Mono", "Courier New", monospace;
+      -webkit-font-smoothing: antialiased;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 3.5rem 1.5rem 3.5rem;
+    }
+
+    .wordmark {
+      position: fixed;
+      top: 1.25rem;
+      left: 1.5rem;
+      font-size: 0.58rem;
+      font-weight: 500;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+      user-select: none;
+    }
+
+    /* ─── Two-column layout ─── */
+    .layout {
+      display: flex;
+      flex-direction: row;
+      gap: 2.25rem;
+      align-items: flex-start;
+      width: 100%;
+      max-width: 880px;
+    }
+
+    .left-col {
+      display: flex;
+      flex-direction: column;
+      gap: 1.75rem;
+      width: var(--side-w);
+      flex-shrink: 0;
+      position: sticky;
+      top: 3.5rem;
+    }
+
+    .right-col {
+      display: flex;
+      flex-direction: column;
+      gap: 2.25rem;
+      flex: 1;
+      min-width: 0;
+    }
+
+    @media (max-width: 680px) {
+      .layout    { flex-direction: column; align-items: stretch; }
+      .left-col  { width: 100%; position: static; }
+    }
+
+    section { display: flex; flex-direction: column; gap: 0.75rem; }
+    section[hidden] { display: none; }
+
+    .section-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+
+    .section-label {
+      font-size: 0.55rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .status {
+      font-size: 0.55rem;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      min-height: 0.9rem;
+    }
+
+    .status.wrong { color: var(--accent); }
+
+    /* ─── Controls ─── */
+    .controls { display: flex; gap: 0.625rem; }
+
+    .btn {
+      flex: 1;
+      padding: 0.7rem 0.75rem;
+      font-family: "DM Mono", monospace;
+      font-size: 0.58rem;
+      font-weight: 500;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+    }
+
+    .btn:hover, .btn:focus-visible { color: var(--text); border-color: var(--text); outline: none; }
+    .btn:focus-visible { box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px var(--text); }
+    .btn:disabled { opacity: 0.35; cursor: default; }
+    .btn[hidden] { display: none; }
+
+    .btn-primary { background: var(--accent); border-color: var(--accent); color: var(--text); }
+    .btn-primary:hover, .btn-primary:focus-visible {
+      background: var(--accent-dim); border-color: var(--accent-dim); color: var(--text);
+    }
+
+    /* ─── Length selector (segmented control) ─── */
+    .seg {
+      display: flex;
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+
+    .seg-btn {
+      flex: 1;
+      padding: 0.42rem 0;
+      font-family: "DM Mono", monospace;
+      font-size: 0.56rem;
+      font-weight: 500;
+      background: transparent;
+      border: none;
+      border-right: 1px solid var(--border);
+      color: var(--muted);
+      cursor: pointer;
+      font-variant-numeric: tabular-nums;
+      transition: color 0.15s, background 0.15s;
+    }
+
+    .seg-btn:last-child { border-right: none; }
+    .seg-btn:hover:not([aria-pressed="true"]) { color: var(--text); background: rgba(255,255,255,0.04); }
+    .seg-btn[aria-pressed="true"] { background: var(--border); color: var(--text); cursor: default; }
+    .seg-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+    /* ─── Puzzle chain ─── */
+    .chain { list-style: none; display: flex; flex-direction: column; }
+
+    .chain-film {
+      display: flex;
+      align-items: center;
+      gap: 0.9rem;
+      width: 100%;
+      padding: 0.5rem 0.6rem 0.5rem 0;
+      background: transparent;
+      border: none;
+      color: var(--text);
+      cursor: pointer;
+      text-align: left;
+      font: inherit;
+      transition: background 0.15s;
+    }
+
+    .chain-film:hover, .chain-film:focus-visible { background: var(--surface); outline: none; }
+    .chain-film:focus-visible { box-shadow: inset 2px 0 0 var(--accent); }
+
+    .chain-num {
+      width: 1.4rem;
+      flex-shrink: 0;
+      text-align: right;
+      font-size: 0.55rem;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .thumb {
+      width: var(--thumb-w);
+      height: calc(var(--thumb-w) * 1.5);
+      flex-shrink: 0;
+      object-fit: cover;
+      background: var(--surface);
+      border: 1px solid var(--border);
+    }
+
+    .chain-text { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
+
+    .chain-title {
+      font-family: "Cormorant Garamond", Georgia, serif;
+      font-size: 1.2rem;
+      font-weight: 600;
+      line-height: 1.15;
+    }
+
+    .chain-year {
+      font-size: 0.55rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    /* The shared actor sits on the joint between two films, hidden until revealed */
+    .via {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding-left: calc(1.4rem + 0.9rem + var(--thumb-w) / 2 - 0.5px);
+      height: 0;
+      overflow: hidden;
+      opacity: 0;
+      font-size: 0.6rem;
+      letter-spacing: 0.06em;
+      color: var(--accent);
+      transition: height 0.3s ease, opacity 0.3s ease;
+    }
+
+    .via::before { content: ""; width: 1px; align-self: stretch; background: var(--accent-dim); }
+
+    .chain.reveal .via { height: 1.6rem; opacity: 1; }
+
+    .empty {
+      padding: 2.5rem 0;
+      text-align: center;
+      font-size: 0.62rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--border);
+      border: 1px dashed var(--border);
+    }
+
+    /* ─── Trail (explorer path) ─── */
+    .trail-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      font-size: 0.64rem;
+      counter-reset: movie;
+    }
+
+    .trail-list [data-kind="movie"] { counter-increment: movie; color: var(--text); }
+    .trail-list [data-kind="movie"]::before { content: counter(movie) ". "; color: var(--muted); }
+    .trail-list [data-kind="actor"] { color: var(--accent); padding-left: 1.1rem; }
+    .trail-list [data-kind="actor"]::before { content: "↳ "; }
+    .trail-list.hide-actors [data-kind="actor"] { display: none; }
+
+    .link-btn {
+      font: inherit;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      font-size: 0.55rem;
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    .link-btn:hover, .link-btn:focus-visible { color: var(--text); outline: none; }
+
+    /* ─── Search + dropdown ─── */
+    .search-row { position: relative; }
+
+    .search-input {
+      width: 100%;
+      font-family: "DM Mono", monospace;
+      font-size: 0.72rem;
+      letter-spacing: 0.03em;
+      padding: 0.7rem 0.85rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .search-input::placeholder { color: var(--muted); }
+    .search-input:focus { border-color: var(--muted); }
+
+    .suggest-drop {
+      position: absolute;
+      top: calc(100% - 1px);
+      left: 0;
+      right: 0;
+      z-index: 20;
+      background: var(--surface);
+      border: 1px solid var(--muted);
+      border-top: none;
+      overflow-y: auto;
+      max-height: 260px;
+    }
+
+    .suggest-drop[hidden] { display: none; }
+
+    .suggest-item {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 1rem;
+      width: 100%;
+      padding: 0.6rem 0.85rem;
+      font-family: "DM Mono", monospace;
+      font-size: 0.68rem;
+      letter-spacing: 0.02em;
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid var(--border);
+      color: var(--muted);
+      cursor: pointer;
+      text-align: left;
+      transition: background 0.1s, color 0.1s;
+    }
+
+    .suggest-item:last-child { border-bottom: none; }
+    .suggest-item:hover,
+    .suggest-item[aria-selected="true"] { background: var(--border); color: var(--text); }
+
+    .suggest-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .suggest-year  { flex-shrink: 0; font-size: 0.6rem; color: var(--muted); }
+
+    /* ─── Explorer tables ─── */
+    .trail { display: flex; flex-direction: column; gap: 1.5rem; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 0.66rem; }
+
+    caption {
+      text-align: left;
+      padding-bottom: 0.55rem;
+      font-family: "Cormorant Garamond", Georgia, serif;
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    caption .cap-prefix {
+      font-family: "DM Mono", monospace;
+      font-size: 0.55rem;
+      font-weight: 400;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-right: 0.5rem;
+    }
+
+    th {
+      font-size: 0.52rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 0 0 0.4rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    th, td { text-align: left; }
+    th:not(:first-child), td:not(:first-child) { text-align: right; padding-left: 1rem; }
+    td { padding: 0.4rem 0; border-bottom: 1px solid var(--border); color: var(--muted); font-variant-numeric: tabular-nums; }
+
+    td a { color: var(--text); text-decoration: none; }
+    td a:hover, td a:focus-visible { color: var(--accent); outline: none; text-decoration: underline; text-underline-offset: 3px; }
+    td.none { text-align: left !important; font-style: italic; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .via { transition: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <span class="wordmark">MoviePalace</span>
+
+  <div class="layout">
+
+    <!-- ── Left column: generator controls + explorer trail ── -->
+    <div class="left-col">
+      <section aria-label="Puzzle settings">
+        <span class="section-label">Films in chain</span>
+        <div class="seg" id="lenSeg" role="group" aria-label="Films in chain"></div>
+        <div class="controls">
+          <button class="btn btn-primary" id="btnGenerate" type="button">Generate</button>
+          <button class="btn" id="btnReveal" type="button" hidden>Show answers</button>
+        </div>
+        <div class="status" id="genStatus" aria-live="polite"></div>
+      </section>
+
+      <section id="trailSection" aria-label="Explorer path" hidden>
+        <div class="section-header">
+          <span class="section-label">Path</span>
+          <button class="link-btn" id="btnActors" type="button">Hide actors</button>
+        </div>
+        <ol class="trail-list" id="trailList"></ol>
+      </section>
+    </div>
+
+    <!-- ── Right column: puzzle + explorer ── -->
+    <div class="right-col">
+      <section aria-label="Puzzle">
+        <span class="section-label">Connections</span>
+        <ol class="chain" id="chain"></ol>
+        <p class="empty" id="chainEmpty">Generate a puzzle</p>
+      </section>
+
+      <section aria-label="Explore cast and films">
+        <span class="section-label">Explore</span>
+        <div class="search-row">
+          <input
+            class="search-input"
+            id="searchInput"
+            type="text"
+            placeholder="Find a film…"
+            autocomplete="off"
+            spellcheck="false"
+            aria-autocomplete="list"
+            aria-haspopup="listbox"
+            aria-expanded="false"
+            aria-controls="suggestDrop"
+          >
+          <div class="suggest-drop" id="suggestDrop" role="listbox" aria-label="Matching films" hidden></div>
+        </div>
+        <div class="trail" id="trail"></div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    const lenSeg       = document.getElementById("lenSeg");
+    const btnGenerate  = document.getElementById("btnGenerate");
+    const btnReveal    = document.getElementById("btnReveal");
+    const genStatus    = document.getElementById("genStatus");
+    const chainEl      = document.getElementById("chain");
+    const chainEmpty   = document.getElementById("chainEmpty");
+    const trailSection = document.getElementById("trailSection");
+    const trailList    = document.getElementById("trailList");
+    const btnActors    = document.getElementById("btnActors");
+    const searchInput  = document.getElementById("searchInput");
+    const suggestDrop  = document.getElementById("suggestDrop");
+    const trail        = document.getElementById("trail");
+
+    const LENGTHS     = [3, 4, 5, 6, 7, 8, 9, 10];
+    const LEN_STORE   = "moviepalace.puzzleGenerator.length";
+    const RECENT_PUZZLES = 3; // films from the last few puzzles are skipped
+    const recentPuzzles  = [];
+
+    let length = 7;
+    try { length = LENGTHS.includes(Number(localStorage.getItem(LEN_STORE))) ? Number(localStorage.getItem(LEN_STORE)) : 7; } catch { /* storage unavailable */ }
+
+    // Autocomplete state
+    let suggestions   = [];
+    let activeIdx     = -1;
+    let typedValue    = "";
+    let debounceTimer = null;
+    let exploreSeq    = 0; // guards against out-of-order responses when clicks overlap
+
+    async function getJson(url) {
+      const res = await fetch(url);
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.error ?? `HTTP ${res.status}`);
+      return body;
+    }
+
+    // ─── Length selector ──────────────────────────────────────────────────
+    function renderLengths() {
+      lenSeg.innerHTML = "";
+      for (const n of LENGTHS) {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "seg-btn";
+        b.textContent = String(n);
+        b.setAttribute("aria-pressed", String(n === length));
+        b.addEventListener("click", () => {
+          length = n;
+          try { localStorage.setItem(LEN_STORE, String(n)); } catch { /* storage unavailable */ }
+          renderLengths();
+        });
+        lenSeg.appendChild(b);
+      }
+    }
+
+    // ─── Generator ────────────────────────────────────────────────────────
+    function setStatus(msg, kind = "") {
+      genStatus.textContent = msg;
+      genStatus.className = `status ${kind}`;
+    }
+
+    function setRevealed(on) {
+      chainEl.classList.toggle("reveal", on);
+      btnReveal.textContent = on ? "Hide answers" : "Show answers";
+    }
+
+    function renderChain(steps) {
+      chainEl.innerHTML = "";
+      chainEmpty.hidden = steps.length > 0;
+      btnReveal.hidden  = steps.length === 0;
+      setRevealed(false);
+
+      steps.forEach((s, i) => {
+        const li = document.createElement("li");
+
+        if (s.via) {
+          const via = document.createElement("div");
+          via.className = "via";
+          via.textContent = s.via.name;
+          li.appendChild(via);
+        }
+
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "chain-film";
+        btn.title = "Explore the cast";
+        btn.addEventListener("click", () => {
+          clearTrail();
+          showCast(s.id);
+        });
+
+        const num = document.createElement("span");
+        num.className = "chain-num";
+        num.textContent = String(i + 1);
+
+        const img = document.createElement("img");
+        img.className = "thumb";
+        img.alt = "";
+        img.loading = "lazy";
+        if (s.posterUrl) img.src = s.posterUrl;
+
+        const text = document.createElement("span");
+        text.className = "chain-text";
+        const title = document.createElement("span");
+        title.className = "chain-title";
+        title.textContent = s.title;
+        const year = document.createElement("span");
+        year.className = "chain-year";
+        year.textContent = s.year ?? "";
+        text.append(title, year);
+
+        btn.append(num, img, text);
+        li.appendChild(btn);
+        chainEl.appendChild(li);
+      });
+    }
+
+    async function generate() {
+      btnGenerate.disabled = true;
+      setStatus("Searching…");
+      try {
+        const avoid = recentPuzzles.flat().join(",");
+        const data = await getJson(`/v1/movies/connections?length=${length}${avoid ? `&avoid=${avoid}` : ""}`);
+        renderChain(data.steps);
+        setStatus(data.steps.length < data.requested
+          ? `Only reached ${data.steps.length} of ${data.requested} films` : "");
+
+        recentPuzzles.push(data.steps.map(s => s.id));
+        while (recentPuzzles.length > RECENT_PUZZLES) recentPuzzles.shift();
+      } catch (err) {
+        setStatus(err.message === "Failed to fetch" ? "Could not reach the server" : err.message, "wrong");
+      } finally {
+        btnGenerate.disabled = false;
+      }
+    }
+
+    btnGenerate.addEventListener("click", generate);
+    btnReveal.addEventListener("click", () => setRevealed(!chainEl.classList.contains("reveal")));
+
+    // ─── Explorer trail ───────────────────────────────────────────────────
+    // Clicking discards everything downstream of the clicked link, so the trail
+    // always reads as one path rather than a pile of abandoned branches.
+    function clearTrail() {
+      exploreSeq++;
+      trail.replaceChildren();
+      updatePath();
+    }
+
+    function truncateAfter(el) {
+      const table = el.closest("table");
+      while (table.nextElementSibling) table.nextElementSibling.remove();
+      exploreSeq++;
+      updatePath();
+    }
+
+    function link(text, onClick) {
+      const a = Object.assign(document.createElement("a"), { textContent: text, href: "#" });
+      a.addEventListener("click", e => { e.preventDefault(); truncateAfter(a); onClick(); });
+      return a;
+    }
+
+    function addRow(parent, values, tag = "td") {
+      const tr = document.createElement("tr");
+      for (const value of values) {
+        const cell = document.createElement(tag);
+        cell.append(value);
+        tr.append(cell);
+      }
+      parent.append(tr);
+    }
+
+    function addTable(prefix, name, kind, headers) {
+      const table = document.createElement("table");
+      const cap = table.createCaption();
+      const pre = document.createElement("span");
+      pre.className = "cap-prefix";
+      pre.textContent = prefix;
+      cap.append(pre, name);
+      table.dataset.name = name;
+      table.dataset.kind = kind;
+      addRow(table.createTHead(), headers, "th");
+      trail.append(table);
+      updatePath();
+      table.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      return table.createTBody();
+    }
+
+    function addEmptyRow(tbody, cols, msg) {
+      const tr = document.createElement("tr");
+      const td = document.createElement("td");
+      td.colSpan = cols;
+      td.className = "none";
+      td.textContent = msg;
+      tr.append(td);
+      tbody.append(tr);
+    }
+
+    // The path panel is derived from the trail rather than tracked alongside it.
+    function updatePath() {
+      trailList.replaceChildren();
+      for (const table of trail.children) {
+        const li = document.createElement("li");
+        li.textContent = table.dataset.name;
+        li.dataset.kind = table.dataset.kind;
+        trailList.append(li);
+      }
+      trailSection.hidden = trail.children.length === 0;
+    }
+
+    btnActors.addEventListener("click", () => {
+      btnActors.textContent = trailList.classList.toggle("hide-actors") ? "Show actors" : "Hide actors";
+    });
+
+    async function showCast(movieId) {
+      const seq = exploreSeq;
+      try {
+        const { movie, cast } = await getJson(`/v1/movies/${movieId}/cast`);
+        if (seq !== exploreSeq) return;
+        const label = movie.year ? `${movie.title} (${movie.year})` : movie.title;
+        const tbody = addTable("Cast of", label, "movie", ["Actor", "Billing", "Popularity"]);
+        if (!cast.length) addEmptyRow(tbody, 3, "No cast stored for this film");
+        for (const p of cast) {
+          addRow(tbody, [link(p.name, () => showFilms(p.id)), String(p.billing), p.popularity?.toFixed(1) ?? "–"]);
+        }
+      } catch (err) {
+        if (seq === exploreSeq) setStatus(err.message, "wrong");
+      }
+    }
+
+    async function showFilms(actorId) {
+      const seq = exploreSeq;
+      try {
+        const { actor, films } = await getJson(`/v1/movies/actors/${actorId}/films`);
+        if (seq !== exploreSeq) return;
+        const tbody = addTable("Films with", actor.name, "actor", ["Film", "Year", "Billing"]);
+        if (!films.length) addEmptyRow(tbody, 3, "No films in the database");
+        for (const f of films) {
+          addRow(tbody, [link(f.title, () => showCast(f.id)), f.year ?? "", String(f.billing)]);
+        }
+      } catch (err) {
+        if (seq === exploreSeq) setStatus(err.message, "wrong");
+      }
+    }
+
+    // ─── Search autocomplete ──────────────────────────────────────────────
+    function openDrop() {
+      suggestDrop.hidden = false;
+      searchInput.setAttribute("aria-expanded", "true");
+    }
+
+    function closeDrop() {
+      suggestDrop.hidden = true;
+      searchInput.setAttribute("aria-expanded", "false");
+      searchInput.removeAttribute("aria-activedescendant");
+      activeIdx   = -1;
+      suggestions = [];
+    }
+
+    function renderDrop() {
+      suggestDrop.innerHTML = "";
+      if (suggestions.length === 0) { closeDrop(); return; }
+
+      suggestions.forEach((item, i) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "suggest-item";
+        btn.setAttribute("role", "option");
+        btn.id = `suggest-opt-${i}`;
+        btn.setAttribute("aria-selected", "false");
+
+        const titleSpan = document.createElement("span");
+        titleSpan.className   = "suggest-title";
+        titleSpan.textContent = item.title;
+
+        const yearSpan = document.createElement("span");
+        yearSpan.className   = "suggest-year";
+        yearSpan.textContent = item.year ?? "";
+
+        btn.append(titleSpan, yearSpan);
+        btn.addEventListener("mousedown", (e) => {
+          e.preventDefault();
+          selectSuggestion(item);
+        });
+        suggestDrop.appendChild(btn);
+      });
+
+      openDrop();
+      setActiveIdx(-1);
+    }
+
+    function setActiveIdx(idx) {
+      activeIdx = idx;
+      const items = suggestDrop.querySelectorAll(".suggest-item");
+      items.forEach((el, i) => el.setAttribute("aria-selected", i === idx ? "true" : "false"));
+
+      if (idx >= 0 && items[idx]) {
+        searchInput.setAttribute("aria-activedescendant", items[idx].id);
+        searchInput.value = suggestions[idx].title;
+      } else {
+        searchInput.removeAttribute("aria-activedescendant");
+        searchInput.value = typedValue;
+      }
+    }
+
+    // A new search starts a new trail
+    function selectSuggestion(item) {
+      closeDrop();
+      searchInput.value = "";
+      typedValue = "";
+      clearTrail();
+      showCast(item.id);
+    }
+
+    async function fetchSuggestions(q) {
+      try {
+        const data = await getJson(`/v1/movies/suggest?q=${encodeURIComponent(q)}`);
+        suggestions = data.results ?? [];
+        renderDrop();
+      } catch {
+        closeDrop();
+      }
+    }
+
+    searchInput.addEventListener("input", () => {
+      typedValue = searchInput.value;
+      activeIdx  = -1;
+      clearTimeout(debounceTimer);
+      const q = searchInput.value.trim();
+      if (q.length < 2) { closeDrop(); return; }
+      debounceTimer = setTimeout(() => fetchSuggestions(q), 200);
+    });
+
+    searchInput.addEventListener("keydown", (e) => {
+      if (suggestDrop.hidden) return;
+      if (e.key === "ArrowDown") { e.preventDefault(); setActiveIdx(Math.min(activeIdx + 1, suggestions.length - 1)); }
+      if (e.key === "ArrowUp")   { e.preventDefault(); setActiveIdx(Math.max(activeIdx - 1, -1)); }
+      if (e.key === "Enter")     { e.preventDefault(); selectSuggestion(suggestions[Math.max(activeIdx, 0)]); }
+      if (e.key === "Escape")    { e.preventDefault(); searchInput.value = typedValue; closeDrop(); }
+    });
+
+    document.addEventListener("mousedown", (e) => {
+      if (!suggestDrop.hidden && !searchInput.contains(e.target) && !suggestDrop.contains(e.target)) {
+        closeDrop();
+      }
+    });
+
+    // ─── Wiring ───────────────────────────────────────────────────────────
+    renderLengths();
+    generate();
+  </script>
+</body>
+</html>
