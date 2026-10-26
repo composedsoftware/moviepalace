@@ -18,6 +18,7 @@
       --accent:           #C43A57;
       --accent-dim:       #8C2A3E;
       --success:          #3D8C6E;
+      --success-bg:       rgba(61, 140, 110, 0.12);
       --wrong-bg:         rgba(196, 58, 87, 0.10);
       --kw-active-bg:     rgba(196, 58, 87, 0.14);
       --kw-active-border: rgba(196, 58, 87, 0.5);
@@ -109,6 +110,7 @@
     }
 
     .status.wrong { color: var(--accent); }
+    .status.success { color: var(--success); }
 
     /* ─── Controls ─── */
     .controls { display: flex; gap: 0.625rem; }
@@ -220,24 +222,53 @@
       color: var(--muted);
     }
 
-    /* The shared actor sits on the joint between two films, hidden until revealed */
-    .via {
+    /* The link between two films: a guess box on the joint, checked against both casts */
+    .link {
       display: flex;
-      align-items: center;
-      gap: 0.6rem;
+      gap: 0.9rem;
       padding-left: calc(1.4rem + 0.9rem + var(--thumb-w) / 2 - 0.5px);
-      height: 0;
-      overflow: hidden;
-      opacity: 0;
-      font-size: 0.6rem;
-      letter-spacing: 0.06em;
-      color: var(--accent);
-      transition: height 0.3s ease, opacity 0.3s ease;
+      min-height: 2.6rem;
     }
 
-    .via::before { content: ""; width: 1px; align-self: stretch; background: var(--accent-dim); }
+    .link::before { content: ""; width: 1px; flex-shrink: 0; background: var(--border); }
+    .link[data-state="right"]::before { background: var(--success); }
 
-    .chain.reveal .via { height: 1.6rem; opacity: 1; }
+    .link-body {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      flex: 1;
+      min-width: 0;
+      padding: 0.3rem 0;
+    }
+
+    .link-guess { position: relative; width: min(220px, 100%); }
+    .link-guess[hidden] { display: none; }
+
+    .link-input {
+      width: 100%;
+      font-family: "DM Mono", monospace;
+      font-size: 0.64rem;
+      padding: 0.45rem 0.6rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .link-input::placeholder { color: var(--muted); }
+    .link-input:focus { border-color: var(--muted); }
+    .link-input:disabled { opacity: 0.4; }
+
+    .link-result { font-size: 0.6rem; letter-spacing: 0.06em; }
+    .link-result.right { color: var(--success); }
+    .link-result.wrong { color: var(--accent); }
+
+    .link-answer { display: none; font-size: 0.6rem; letter-spacing: 0.06em; color: var(--muted); }
+    .chain.reveal .link:not([data-state="right"]) .link-answer { display: inline; }
+    .chain.reveal .link:not([data-state="right"]) .link-guess { display: none; }
 
     .empty {
       padding: 2.5rem 0;
@@ -381,9 +412,6 @@
     td a:hover, td a:focus-visible { color: var(--accent); outline: none; text-decoration: underline; text-underline-offset: 3px; }
     td.none { text-align: left !important; font-style: italic; }
 
-    @media (prefers-reduced-motion: reduce) {
-      .via { transition: none; }
-    }
   </style>
 </head>
 <body>
@@ -465,12 +493,12 @@
     let length = 7;
     try { length = LENGTHS.includes(Number(localStorage.getItem(LEN_STORE))) ? Number(localStorage.getItem(LEN_STORE)) : 7; } catch { /* storage unavailable */ }
 
-    // Autocomplete state
-    let suggestions   = [];
-    let activeIdx     = -1;
-    let typedValue    = "";
-    let debounceTimer = null;
-    let exploreSeq    = 0; // guards against out-of-order responses when clicks overlap
+    let exploreSeq = 0; // guards against out-of-order responses when clicks overlap
+
+    // Current puzzle: steps from the server, and the score for the link guesses
+    let steps   = [];
+    let solved  = 0;
+    let misses  = 0;
 
     async function getJson(url) {
       const res = await fetch(url);
@@ -506,32 +534,93 @@
     function setRevealed(on) {
       chainEl.classList.toggle("reveal", on);
       btnReveal.textContent = on ? "Hide answers" : "Show answers";
+      for (const input of chainEl.querySelectorAll(".link-input")) input.disabled = on;
     }
 
-    function renderChain(steps) {
+    function updateScore() {
+      const total = steps.length - 1;
+      if (total < 1) return;
+      const missText = `${misses} ${misses === 1 ? "miss" : "misses"}`;
+      if (solved === total) setStatus(`Solved! ${missText}`, "success");
+      else setStatus(`${solved} of ${total} links · ${missText}`);
+    }
+
+    // Any actor billed in both films counts, not just the one the generator used.
+    function buildLink(prev, cur) {
+      const link = document.createElement("div");
+      link.className = "link";
+      link.dataset.state = "open";
+
+      const body = document.createElement("div");
+      body.className = "link-body";
+
+      const guess = document.createElement("div");
+      guess.className = "link-guess";
+      const input = Object.assign(document.createElement("input"), {
+        className: "link-input", type: "text", placeholder: "Shared actor…",
+        autocomplete: "off", spellcheck: false,
+      });
+      input.setAttribute("aria-label", `Actor in both ${prev.title} and ${cur.title}`);
+      const drop = document.createElement("div");
+      drop.className = "suggest-drop";
+      drop.setAttribute("role", "listbox");
+      drop.hidden = true;
+      guess.append(input, drop);
+
+      const result = document.createElement("span");
+      result.className = "link-result";
+      result.setAttribute("aria-live", "polite");
+
+      const answer = document.createElement("span");
+      answer.className = "link-answer";
+      answer.textContent = cur.via.name;
+
+      body.append(guess, result, answer);
+      link.appendChild(body);
+
+      autocomplete(input, drop, {
+        fetchItems: async q => (await getJson(`/v1/movies/actors/suggest?q=${encodeURIComponent(q)}`)).results,
+        label: a => a.name,
+        onPick: actor => {
+          input.value = "";
+          if (prev.castIds.includes(actor.id) && cur.castIds.includes(actor.id)) {
+            link.dataset.state = "right";
+            guess.hidden = true;
+            result.className = "link-result right";
+            result.textContent = actor.name;
+            solved++;
+            // Move on to the next open link
+            chainEl.querySelector('.link[data-state="open"] .link-input')?.focus();
+          } else {
+            misses++;
+            result.className = "link-result wrong";
+            result.textContent = `${actor.name} isn't in both`;
+          }
+          updateScore();
+        },
+      });
+
+      return link;
+    }
+
+    function renderChain(next) {
+      steps  = next;
+      solved = 0;
+      misses = 0;
       chainEl.innerHTML = "";
       chainEmpty.hidden = steps.length > 0;
       btnReveal.hidden  = steps.length === 0;
-      setRevealed(false);
 
       steps.forEach((s, i) => {
         const li = document.createElement("li");
 
-        if (s.via) {
-          const via = document.createElement("div");
-          via.className = "via";
-          via.textContent = s.via.name;
-          li.appendChild(via);
-        }
+        if (i > 0 && s.via) li.appendChild(buildLink(steps[i - 1], s));
 
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className = "chain-film";
         btn.title = "Explore the cast";
-        btn.addEventListener("click", () => {
-          clearTrail();
-          showCast(s.id);
-        });
+        btn.addEventListener("click", () => showCast(s.id));
 
         const num = document.createElement("span");
         num.className = "chain-num";
@@ -557,6 +646,8 @@
         li.appendChild(btn);
         chainEl.appendChild(li);
       });
+
+      setRevealed(false);
     }
 
     async function generate() {
@@ -565,9 +656,13 @@
       try {
         const avoid = recentPuzzles.flat().join(",");
         const data = await getJson(`/v1/movies/connections?length=${length}${avoid ? `&avoid=${avoid}` : ""}`);
+        clearTrail();
         renderChain(data.steps);
-        setStatus(data.steps.length < data.requested
-          ? `Only reached ${data.steps.length} of ${data.requested} films` : "");
+        if (data.steps.length < data.requested) {
+          setStatus(`Only reached ${data.steps.length} of ${data.requested} films`);
+        } else {
+          updateScore();
+        }
 
         recentPuzzles.push(data.steps.map(s => s.id));
         while (recentPuzzles.length > RECENT_PUZZLES) recentPuzzles.shift();
@@ -686,106 +781,112 @@
       }
     }
 
-    // ─── Search autocomplete ──────────────────────────────────────────────
-    function openDrop() {
-      suggestDrop.hidden = false;
-      searchInput.setAttribute("aria-expanded", "true");
-    }
+    // ─── Autocomplete ─────────────────────────────────────────────────────
+    // Shared by the film search and every link guess. `sub` is optional
+    // right-hand text (the film year).
+    let dropSeq = 0;
 
-    function closeDrop() {
-      suggestDrop.hidden = true;
-      searchInput.setAttribute("aria-expanded", "false");
-      searchInput.removeAttribute("aria-activedescendant");
-      activeIdx   = -1;
-      suggestions = [];
-    }
+    function autocomplete(input, drop, { fetchItems, label, sub, onPick }) {
+      const prefix = `opt-${++dropSeq}-`;
+      let items = [], activeIdx = -1, typed = "", timer = null, reqSeq = 0;
 
-    function renderDrop() {
-      suggestDrop.innerHTML = "";
-      if (suggestions.length === 0) { closeDrop(); return; }
+      input.setAttribute("aria-autocomplete", "list");
+      input.setAttribute("aria-expanded", "false");
 
-      suggestions.forEach((item, i) => {
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "suggest-item";
-        btn.setAttribute("role", "option");
-        btn.id = `suggest-opt-${i}`;
-        btn.setAttribute("aria-selected", "false");
+      function close() {
+        drop.hidden = true;
+        input.setAttribute("aria-expanded", "false");
+        input.removeAttribute("aria-activedescendant");
+        activeIdx = -1;
+        items = [];
+      }
 
-        const titleSpan = document.createElement("span");
-        titleSpan.className   = "suggest-title";
-        titleSpan.textContent = item.title;
+      function setActive(idx) {
+        activeIdx = idx;
+        const els = drop.querySelectorAll(".suggest-item");
+        els.forEach((el, i) => el.setAttribute("aria-selected", i === idx ? "true" : "false"));
+        if (idx >= 0 && els[idx]) {
+          input.setAttribute("aria-activedescendant", els[idx].id);
+          input.value = label(items[idx]);
+        } else {
+          input.removeAttribute("aria-activedescendant");
+          input.value = typed;
+        }
+      }
 
-        const yearSpan = document.createElement("span");
-        yearSpan.className   = "suggest-year";
-        yearSpan.textContent = item.year ?? "";
+      function pick(item) {
+        close();
+        typed = "";
+        onPick(item);
+      }
 
-        btn.append(titleSpan, yearSpan);
-        btn.addEventListener("mousedown", (e) => {
-          e.preventDefault();
-          selectSuggestion(item);
+      function render() {
+        drop.innerHTML = "";
+        if (!items.length) { close(); return; }
+        items.forEach((item, i) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "suggest-item";
+          btn.id = prefix + i;
+          btn.setAttribute("role", "option");
+          btn.setAttribute("aria-selected", "false");
+
+          const t = document.createElement("span");
+          t.className = "suggest-title";
+          t.textContent = label(item);
+          btn.appendChild(t);
+          if (sub) {
+            const y = document.createElement("span");
+            y.className = "suggest-year";
+            y.textContent = sub(item) ?? "";
+            btn.appendChild(y);
+          }
+
+          btn.addEventListener("mousedown", e => { e.preventDefault(); pick(item); });
+          drop.appendChild(btn);
         });
-        suggestDrop.appendChild(btn);
+        drop.hidden = false;
+        input.setAttribute("aria-expanded", "true");
+        setActive(-1);
+      }
+
+      input.addEventListener("input", () => {
+        typed = input.value;
+        clearTimeout(timer);
+        const q = input.value.trim();
+        if (q.length < 2) { close(); return; }
+        timer = setTimeout(async () => {
+          const seq = ++reqSeq;
+          try {
+            const next = await fetchItems(q);
+            if (seq !== reqSeq) return;
+            items = next ?? [];
+            render();
+          } catch { close(); }
+        }, 200);
       });
 
-      openDrop();
-      setActiveIdx(-1);
-    }
+      input.addEventListener("keydown", e => {
+        if (drop.hidden) return;
+        if (e.key === "ArrowDown") { e.preventDefault(); setActive(Math.min(activeIdx + 1, items.length - 1)); }
+        if (e.key === "ArrowUp")   { e.preventDefault(); setActive(Math.max(activeIdx - 1, -1)); }
+        if (e.key === "Enter")     { e.preventDefault(); pick(items[Math.max(activeIdx, 0)]); }
+        if (e.key === "Escape")    { e.preventDefault(); input.value = typed; close(); }
+      });
 
-    function setActiveIdx(idx) {
-      activeIdx = idx;
-      const items = suggestDrop.querySelectorAll(".suggest-item");
-      items.forEach((el, i) => el.setAttribute("aria-selected", i === idx ? "true" : "false"));
-
-      if (idx >= 0 && items[idx]) {
-        searchInput.setAttribute("aria-activedescendant", items[idx].id);
-        searchInput.value = suggestions[idx].title;
-      } else {
-        searchInput.removeAttribute("aria-activedescendant");
-        searchInput.value = typedValue;
-      }
+      input.addEventListener("blur", close);
     }
 
     // A new search starts a new trail
-    function selectSuggestion(item) {
-      closeDrop();
-      searchInput.value = "";
-      typedValue = "";
-      clearTrail();
-      showCast(item.id);
-    }
-
-    async function fetchSuggestions(q) {
-      try {
-        const data = await getJson(`/v1/movies/suggest?q=${encodeURIComponent(q)}`);
-        suggestions = data.results ?? [];
-        renderDrop();
-      } catch {
-        closeDrop();
-      }
-    }
-
-    searchInput.addEventListener("input", () => {
-      typedValue = searchInput.value;
-      activeIdx  = -1;
-      clearTimeout(debounceTimer);
-      const q = searchInput.value.trim();
-      if (q.length < 2) { closeDrop(); return; }
-      debounceTimer = setTimeout(() => fetchSuggestions(q), 200);
-    });
-
-    searchInput.addEventListener("keydown", (e) => {
-      if (suggestDrop.hidden) return;
-      if (e.key === "ArrowDown") { e.preventDefault(); setActiveIdx(Math.min(activeIdx + 1, suggestions.length - 1)); }
-      if (e.key === "ArrowUp")   { e.preventDefault(); setActiveIdx(Math.max(activeIdx - 1, -1)); }
-      if (e.key === "Enter")     { e.preventDefault(); selectSuggestion(suggestions[Math.max(activeIdx, 0)]); }
-      if (e.key === "Escape")    { e.preventDefault(); searchInput.value = typedValue; closeDrop(); }
-    });
-
-    document.addEventListener("mousedown", (e) => {
-      if (!suggestDrop.hidden && !searchInput.contains(e.target) && !suggestDrop.contains(e.target)) {
-        closeDrop();
-      }
+    autocomplete(searchInput, suggestDrop, {
+      fetchItems: async q => (await getJson(`/v1/movies/suggest?q=${encodeURIComponent(q)}`)).results,
+      label: m => m.title,
+      sub: m => m.year,
+      onPick: m => {
+        searchInput.value = "";
+        clearTrail();
+        showCast(m.id);
+      },
     });
 
     // ─── Wiring ───────────────────────────────────────────────────────────

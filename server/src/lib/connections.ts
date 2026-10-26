@@ -22,6 +22,7 @@ export interface ChainStep {
   title: string;
   year: string | null;
   posterUrl: string | null;
+  castIds: number[];        // top-billed actor IDs, so the page can accept any shared actor as a correct guess
   via?: { id: number; name: string };
 }
 
@@ -130,7 +131,13 @@ function walk(graph: Graph, length: number, avoid: Set<number>): ChainStep[] {
   const seeds = fresh.length ? fresh : all;
   let current = seeds[Math.floor(Math.random() * seeds.length)];
   chain.push(current);
-  steps.push({ id: current.id, title: current.title, year: current.year, posterUrl: posterUrl(current.posterPath) });
+  steps.push({
+    id: current.id,
+    title: current.title,
+    year: current.year,
+    posterUrl: posterUrl(current.posterPath),
+    castIds: current.cast,
+  });
 
   while (steps.length < length) {
     const cast = weightedShuffle(
@@ -160,6 +167,7 @@ function walk(graph: Graph, length: number, avoid: Set<number>): ChainStep[] {
       title: next.title,
       year: next.year,
       posterUrl: posterUrl(next.posterPath),
+      castIds: next.cast,
       via: { id: viaId, name: graph.actors.get(viaId)!.name },
     });
     current = next;

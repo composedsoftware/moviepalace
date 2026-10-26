@@ -7,6 +7,7 @@
  *   GET  /v1/movies/search?query=&year=
  *   GET  /v1/movies/random
  *   GET  /v1/movies/connections?length=&avoid=
+ *   GET  /v1/movies/actors/suggest?q=
  *   GET  /v1/movies/actors/:actorId/films
  *   GET  /v1/movies/:movieId/cast
  *   GET  /v1/movies/question/:questionId
@@ -59,6 +60,7 @@ app.listen(PORT, () => {
   console.log(`    GET  /v1/movies/suggest?q=Inc`);
   console.log(`    GET  /v1/movies/random`);
   console.log(`    GET  /v1/movies/connections?length=7`);
+  console.log(`    GET  /v1/movies/actors/suggest?q=Han`);
   console.log(`    GET  /v1/movies/actors/31/films`);
   console.log(`    GET  /v1/movies/27205/cast`);
   console.log(`    GET  /v1/movies/question/14`);

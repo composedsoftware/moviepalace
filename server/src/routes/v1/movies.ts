@@ -380,6 +380,38 @@ router.get(
 );
 
 /**
+ * GET /v1/movies/actors/suggest?q=
+ *
+ * Searches the local Actor table by name, most popular first.
+ * Feeds the link guesses on the puzzle-generator page.
+ *
+ * Query params:
+ *   q (required) - search string, min 2 characters
+ *
+ * Returns: { results: [{ id, name }] }
+ */
+router.get(
+  "/actors/suggest",
+  async (req: Request<{}, unknown, {}, { q?: string }>, res: Response) => {
+    const q = String(req.query.q ?? "").trim();
+
+    if (q.length < 2) {
+      res.json({ results: [] });
+      return;
+    }
+
+    const actors = await prisma.actor.findMany({
+      where: { name: { contains: q } },
+      select: { id: true, name: true },
+      take: 8,
+      orderBy: { popularity: "desc" },
+    });
+
+    res.json({ results: actors });
+  }
+);
+
+/**
  * GET /v1/movies/actors/:actorId/films
  *
  * Lists local movies where the actor is top-billed, newest first.
