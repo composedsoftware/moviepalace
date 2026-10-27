@@ -77,7 +77,17 @@ jobs:
       - name: Take screenshot
         run: |
           mkdir -p screenshots
-          xcrun simctl io "$UDID" screenshot "screenshots/$(echo "$DEVICE_NAME" | tr ' ' '-').png"
+          name=$(echo "$DEVICE_NAME" | tr ' ' '-')
+          # Devices with more than one screen refuse a screenshot without
+          # --display, and list the display ids in the error.
+          if ! out=$(xcrun simctl io "$UDID" screenshot "screenshots/$name.png" 2>&1); then
+            echo "$out"
+            ids=$(echo "$out" | grep -oE -- '--display=[0-9]+' | cut -d= -f2)
+            [ -n "$ids" ] || exit 1
+            for id in $ids; do
+              xcrun simctl io "$UDID" screenshot --display="$id" "screenshots/$name-display-$id.png"
+            done
+          fi
 
       - uses: actions/upload-artifact@v4
         with:
