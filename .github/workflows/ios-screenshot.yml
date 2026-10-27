@@ -1,6 +1,9 @@
 name: iOS Screenshot
 
 on:
+  push:
+    paths:
+      - ".github/workflows/ios-screenshot.yml"
   workflow_dispatch:
     inputs:
       device:
@@ -17,7 +20,8 @@ jobs:
       run:
         working-directory: client/ios
     env:
-      DEVICE_NAME: ${{ inputs.device }}
+      DEVICE_NAME: ${{ inputs.device || 'iPhone Duo' }}
+      LAUNCH_WAIT: ${{ inputs.launch_wait || '10' }}
     steps:
       - uses: actions/checkout@v5
 
@@ -68,7 +72,7 @@ jobs:
           bundle_id=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$app/Info.plist")
           xcrun simctl install "$UDID" "$app"
           xcrun simctl launch "$UDID" "$bundle_id"
-          sleep "${{ inputs.launch_wait }}"
+          sleep "$LAUNCH_WAIT"
 
       - name: Take screenshot
         run: |
