@@ -1,0 +1,166 @@
+name: Movie Palace Build and deploy
+
+on:
+  push:
+    branches: [main]
+    paths: ["server/**", ".github/workflows/server-build-deploy.yml"]
+  pull_request:
+    paths: ["server/**", ".github/workflows/server-build-deploy.yml"]
+  workflow_dispatch:
+
+# One deploy at a time; a newer push waits instead of cancelling a deploy mid-flight.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: server
+    env:
+      # prisma generate only needs the variable to exist; no database is opened in CI
+      DATABASE_URL: file:./ci.db
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .tool-versions
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+
+      - run: npm ci
+      - run: npm run db:generate
+      - run: npm run typecheck
+      - run: npm run build
+
+      # Code only: the production .env and database live on the server and are never shipped.
+      - name: Assemble release
+        run: |
+          mkdir release
+          cp -r dist prisma package.json package-lock.json prisma.config.ts release/
+          tar -czf ../release.tar.gz -C release .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release
+          path: release.tar.gz
+          retention-days: 7
+          if-no-files-found: error
+
+  deploy:
+    needs: build
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    env:
+      DEPLOY_DIR: ${{ vars.DEPLOY_DIR || format('/home/{0}/moviepalace-app', secrets.SSH_USER) }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: release
+
+      - name: Configure SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          cat > ~/.ssh/config <<EOF
+          Host deploy
+            HostName $SSH_HOST
+            User $SSH_USER
+            IdentityFile ~/.ssh/deploy_key
+            IdentitiesOnly yes
+            StrictHostKeyChecking yes
+          EOF
+
+      - name: Upload release
+        run: scp release.tar.gz "deploy:/tmp/moviepalace-${GITHUB_SHA}.tar.gz"
+
+      - name: Install and restart
+        run: |
+          ssh deploy bash -s -- "$GITHUB_SHA" "$DEPLOY_DIR" <<'REMOTE'
+          set -euo pipefail
+          SHA="$1"
+          APP="$2"
+          REL="$APP/releases/$SHA"
+          TARBALL="/tmp/moviepalace-$SHA.tar.gz"
+
+          # Non-interactive SSH skips ~/.bashrc; load nvm if that is how node was installed
+          [ -s "$HOME/.nvm/nvm.sh" ] && . "$HOME/.nvm/nvm.sh"
+
+          # Preflight: shared config must exist and point at an ABSOLUTE database path.
+          # A relative file:./ URL would resolve inside the new release folder and
+          # silently create an empty database.
+          [ -f "$APP/shared/.env" ] || { echo "Missing $APP/shared/.env"; exit 1; }
+          DB_URL="$(grep -E '^DATABASE_URL=' "$APP/shared/.env" | cut -d= -f2- | sed -E "s/^[\"']|[\"']\$//g")"
+          case "$DB_URL" in
+            file:///*) ;;
+            *) echo "DATABASE_URL in shared/.env must be absolute (file:///...), got: $DB_URL"; exit 1 ;;
+          esac
+          [ -f "${DB_URL#file://}" ] || { echo "Database file not found: ${DB_URL#file://}"; exit 1; }
+          PORT="$(grep -E '^PORT=' "$APP/shared/.env" | cut -d= -f2- | tr -d "\"' " || true)"
+          PORT="${PORT:-3000}"
+
+          PREV="$(readlink -f "$APP/current" 2>/dev/null || true)"
+
+          # Unpack and install production dependencies on the server's own platform
+          rm -rf "$REL"
+          mkdir -p "$REL"
+          tar -xzf "$TARBALL" -C "$REL"
+          rm -f "$TARBALL"
+          cd "$REL"
+          npm ci --omit=dev
+          ln -s "$APP/shared/.env" .env
+
+          switch_to() {
+            ln -sfn "$1" "$APP/current.tmp"
+            mv -Tf "$APP/current.tmp" "$APP/current"
+          }
+
+          start_app() {
+            pm2 delete moviepalace >/dev/null 2>&1 || true
+            pm2 start "$APP/current/dist/moviepalace-server.js" --name moviepalace --cwd "$APP/current"
+          }
+
+          healthy() {
+            for _ in $(seq 1 15); do
+              curl -fsS -o /dev/null "http://127.0.0.1:$PORT/blurred-poster/" && return 0
+              sleep 2
+            done
+            return 1
+          }
+
+          switch_to "$REL"
+          start_app
+
+          if healthy; then
+            pm2 save
+            echo "Deployed $SHA"
+          else
+            echo "Health check failed for $SHA"
+            if [ -n "$PREV" ] && [ -d "$PREV" ]; then
+              echo "Rolling back to $PREV"
+              switch_to "$PREV"
+              start_app
+            fi
+            exit 1
+          fi
+
+          # Keep the 5 newest releases
+          cd "$APP/releases"
+          ls -1dt -- */ | tail -n +6 | xargs -r rm -rf
+          REMOTE
