@@ -16,6 +16,8 @@ on:
 jobs:
   screenshot:
     runs-on: xcode-27
+    permissions:
+      contents: write
     defaults:
       run:
         working-directory: client/ios
@@ -88,6 +90,14 @@ jobs:
               xcrun simctl io "$UDID" screenshot --display="$id" "screenshots/$name-display-$id.png"
             done
           fi
+
+      - name: Push screenshots to temporary branch
+        working-directory: client/ios/screenshots
+        run: |
+          git init -q -b out
+          git add .
+          git -c user.name=ci -c user.email=ci@localhost commit -qm screenshots
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" out:tmp/screenshot-output
 
       - uses: actions/upload-artifact@v4
         with:
