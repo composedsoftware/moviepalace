@@ -6,6 +6,10 @@
  * Routes:
  *   GET  /v1/movies/search?query=&year=
  *   GET  /v1/movies/random
+ *   GET  /v1/movies/connections?length=&avoid=
+ *   GET  /v1/movies/actors/suggest?q=
+ *   GET  /v1/movies/actors/:actorId/films
+ *   GET  /v1/movies/:movieId/cast
  *   GET  /v1/movies/question/:questionId
  *   GET  /v1/movies/:movieId
  *   GET  /v1/movies/:movieId/credits
@@ -17,7 +21,8 @@
  *   GET  /v1/admin/movies?query=&limit=
  *
  * Pages:
- *   GET  /blurred-poster  — movie poster guessing tool
+ *   GET  /blurred-poster    — movie poster guessing tool
+ *   GET  /puzzle-generator  — connections puzzle generator
  *
  * Run (dev):  npm run dev
  * Run (prod): npm run build && npm start
@@ -45,6 +50,7 @@ app.use("/v1/movies", moviesV1);
 app.use("/v1/admin", adminV1);
 
 app.use("/blurred-poster", express.static(path.join(__dirname, "blurred-poster")));
+app.use("/puzzle-generator", express.static(path.join(__dirname, "puzzle-generator")));
 
 app.listen(PORT, () => {
   console.log(`MoviePalace API running at http://localhost:${PORT}`);
@@ -53,6 +59,10 @@ app.listen(PORT, () => {
   console.log(`    GET  /v1/movies/search?query=Inception`);
   console.log(`    GET  /v1/movies/suggest?q=Inc`);
   console.log(`    GET  /v1/movies/random`);
+  console.log(`    GET  /v1/movies/connections?length=7`);
+  console.log(`    GET  /v1/movies/actors/suggest?q=Han`);
+  console.log(`    GET  /v1/movies/actors/31/films`);
+  console.log(`    GET  /v1/movies/27205/cast`);
   console.log(`    GET  /v1/movies/question/14`);
   console.log(`    GET  /v1/movies/27205`);
   console.log(`    GET  /v1/movies/27205/credits`);
@@ -66,4 +76,5 @@ app.listen(PORT, () => {
   console.log(``);
   console.log(`  Pages`);
   console.log(`    http://localhost:${PORT}/blurred-poster`);
+  console.log(`    http://localhost:${PORT}/puzzle-generator`);
 });

@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import { tmdbGet, handleError } from "../../lib/tmdb";
 import prisma from "../../lib/db";
+import { generateChain, posterUrl } from "../../lib/connections";
 import {
   TmdbMovieSearchResponse,
   TmdbMovieDetails,
@@ -18,8 +19,8 @@ const router = Router();
 
 const TMDB_API_VERSION = 3;
 
-/** Parse Movie.genres (JSON array of genre IDs) into a number[]; malformed or missing -> []. */
-function parseGenreIds(raw: string | null): number[] {
+/** Parse a JSON array of IDs (Movie.genres, Movie.topCast) into a number[]; malformed or missing -> []. */
+function parseIdList(raw: string | null): number[] {
   if (!raw) return [];
   try {
     const parsed = JSON.parse(raw) as unknown;
@@ -253,7 +254,7 @@ router.get(
 
     const counts = new Map<number, number>();
     for (const m of movies) {
-      for (const id of parseGenreIds(m.genres)) {
+      for (const id of parseIdList(m.genres)) {
         counts.set(id, (counts.get(id) ?? 0) + 1);
       }
     }
@@ -298,7 +299,7 @@ router.get(
     });
 
     const movies = wantedGenres.size
-      ? all.filter((m) => parseGenreIds(m.genres).some((id) => wantedGenres.has(id)))
+      ? all.filter((m) => parseIdList(m.genres).some((id) => wantedGenres.has(id)))
       : all;
 
     if (!movies.length) {
@@ -337,6 +338,160 @@ router.get(
       posterUrl: pick.posterPath ? `https://image.tmdb.org/t/p/w500${pick.posterPath}` : null,
       keywords,
       matchCount: movies.length,
+    });
+  }
+);
+
+/**
+ * GET /v1/movies/connections
+ *
+ * Generates a connections puzzle from the local database: a chain of films where
+ * each adjacent pair shares a top-billed actor. Feeds the puzzle-generator page.
+ *
+ * Query params:
+ *   length (optional, default 7, 3-10) - films in the chain
+ *   avoid  (optional) - comma-separated movie IDs to leave out (e.g. recent puzzles)
+ *
+ * Returns: { requested, steps: [{ id, title, year, posterUrl, via? }] }
+ *   steps may be shorter than requested when every attempt dead-ends
+ */
+router.get(
+  "/connections",
+  async (
+    req: Request<{}, unknown, {}, { length?: string; avoid?: string }>,
+    res: Response
+  ) => {
+    const parsed = parseInt(String(req.query.length ?? "7"), 10);
+    const length = Number.isInteger(parsed) ? Math.min(10, Math.max(3, parsed)) : 7;
+    const avoid = new Set(
+      String(req.query.avoid ?? "")
+        .split(",")
+        .map((s) => parseInt(s, 10))
+        .filter((n) => Number.isInteger(n))
+    );
+
+    const steps = await generateChain(length, avoid);
+    if (!steps.length) {
+      res.status(404).json({ error: "No movies with cast data found" } satisfies ErrorResponse);
+      return;
+    }
+    res.json({ requested: length, steps });
+  }
+);
+
+/**
+ * GET /v1/movies/actors/suggest?q=
+ *
+ * Searches the local Actor table by name, most popular first.
+ * Feeds the link guesses on the puzzle-generator page.
+ *
+ * Query params:
+ *   q (required) - search string, min 2 characters
+ *
+ * Returns: { results: [{ id, name }] }
+ */
+router.get(
+  "/actors/suggest",
+  async (req: Request<{}, unknown, {}, { q?: string }>, res: Response) => {
+    const q = String(req.query.q ?? "").trim();
+
+    if (q.length < 2) {
+      res.json({ results: [] });
+      return;
+    }
+
+    const actors = await prisma.actor.findMany({
+      where: { name: { contains: q } },
+      select: { id: true, name: true },
+      take: 8,
+      orderBy: { popularity: "desc" },
+    });
+
+    res.json({ results: actors });
+  }
+);
+
+/**
+ * GET /v1/movies/actors/:actorId/films
+ *
+ * Lists local movies where the actor is top-billed, newest first.
+ *
+ * Returns: { actor: { id, name }, films: [{ id, title, year, billing, posterUrl }] }
+ *   billing - 1-based position in the film's top-billed cast
+ */
+router.get(
+  "/actors/:actorId/films",
+  async (req: Request<{ actorId: string }>, res: Response) => {
+    const actorId = Number.parseInt(req.params.actorId, 10);
+    if (Number.isNaN(actorId)) {
+      res.status(400).json({ error: '"actorId" must be an integer' } satisfies ErrorResponse);
+      return;
+    }
+
+    const actor = await prisma.actor.findUnique({ where: { id: actorId }, select: { id: true, name: true } });
+    if (!actor) {
+      res.status(404).json({ error: `No actor with ID ${actorId}` } satisfies ErrorResponse);
+      return;
+    }
+
+    // topCast is a JSON array of IDs; the LIKE narrows the scan, the parse confirms the match
+    const rows = await prisma.movie.findMany({
+      where: { topCast: { contains: String(actorId) } },
+      select: { id: true, title: true, releaseDate: true, posterPath: true, topCast: true },
+    });
+
+    const films = rows
+      .map((m) => ({ m, billing: parseIdList(m.topCast).indexOf(actorId) + 1 }))
+      .filter(({ billing }) => billing > 0)
+      .sort((a, b) => (b.m.releaseDate ?? "").localeCompare(a.m.releaseDate ?? ""))
+      .map(({ m, billing }) => ({
+        id: m.id,
+        title: m.title,
+        year: m.releaseDate?.slice(0, 4) ?? null,
+        billing,
+        posterUrl: posterUrl(m.posterPath),
+      }));
+
+    res.json({ actor, films });
+  }
+);
+
+/**
+ * GET /v1/movies/:movieId/cast
+ *
+ * The movie's top-billed cast from the local database (Movie.topCast + Actor),
+ * in billing order. Unlike /:movieId/credits, this never calls TMDB.
+ *
+ * Returns: { movie: { id, title, year }, cast: [{ id, name, popularity, billing }] }
+ */
+router.get(
+  "/:movieId/cast",
+  async (req: Request<{ movieId: string }>, res: Response) => {
+    const movieId = Number.parseInt(req.params.movieId, 10);
+    if (Number.isNaN(movieId)) {
+      res.status(400).json({ error: '"movieId" must be an integer' } satisfies ErrorResponse);
+      return;
+    }
+
+    const movie = await prisma.movie.findUnique({
+      where: { id: movieId },
+      select: { id: true, title: true, releaseDate: true, topCast: true },
+    });
+    if (!movie) {
+      res.status(404).json({ error: `No movie with ID ${movieId}` } satisfies ErrorResponse);
+      return;
+    }
+
+    const ids = parseIdList(movie.topCast);
+    const actorRows = await prisma.actor.findMany({ where: { id: { in: ids } } });
+    const actorMap = new Map(actorRows.map((a) => [a.id, a]));
+
+    res.json({
+      movie: { id: movie.id, title: movie.title, year: movie.releaseDate?.slice(0, 4) ?? null },
+      cast: ids.flatMap((id, i) => {
+        const a = actorMap.get(id);
+        return a ? [{ id: a.id, name: a.name, popularity: a.popularity, billing: i + 1 }] : [];
+      }),
     });
   }
 );
