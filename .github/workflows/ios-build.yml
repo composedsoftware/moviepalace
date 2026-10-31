@@ -32,6 +32,20 @@ jobs:
       - name: Show Xcode version
         run: xcodebuild -version
 
+      # Secrets aren't passed to pull requests from forks, so the build still runs with an empty key there.
+      - name: Write Secrets.swift
+        env:
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+        run: |
+          if [ -z "$TMDB_API_KEY" ]; then
+            echo "::warning::TMDB_API_KEY secret is not set; building without a TMDB key"
+          fi
+          cat > moviepalace/Secrets.swift <<EOF
+          enum Secrets {
+              static let tmdbAPIKey = "$TMDB_API_KEY"
+          }
+          EOF
+
       - name: Build
         run: |
           set -o pipefail
